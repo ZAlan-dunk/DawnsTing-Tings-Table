@@ -4,6 +4,11 @@ Desktop.ini
 .vscode/
 .idea/
 *.log
-node_modules/
-dist/
-build/
+.gradle/
+local.properties
+**/build/
+*.apk
+*.aab
+captures/
+.externalNativeBuild/
+.cxx/

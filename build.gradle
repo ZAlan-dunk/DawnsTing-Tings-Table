@@ -1,0 +1,10 @@
+plugins {
+    id 'com.android.application' version '8.13.0' apply false
+}
+
+// Build caches and generated outputs are kept outside the source repository.
+def externalBuildRoot = new File('F:/AAAASMWORK/AgentProject/TingsTable/build')
+layout.buildDirectory.set(new File(externalBuildRoot, 'root'))
+subprojects {
+    layout.buildDirectory.set(new File(externalBuildRoot, project.name))
+}

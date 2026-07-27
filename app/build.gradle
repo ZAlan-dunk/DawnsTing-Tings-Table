@@ -1,0 +1,46 @@
+plugins {
+    id 'com.android.application'
+}
+
+def releaseStoreFile = System.getenv('TINGS_TABLE_KEYSTORE')
+def releaseStorePassword = System.getenv('TINGS_TABLE_STORE_PASSWORD')
+def releaseKeyAlias = System.getenv('TINGS_TABLE_KEY_ALIAS')
+def releaseKeyPassword = System.getenv('TINGS_TABLE_KEY_PASSWORD')
+def hasReleaseSigning = releaseStoreFile && releaseStorePassword && releaseKeyAlias && releaseKeyPassword
+
+android {
+    namespace 'com.dawns.tingstable'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId 'com.dawns.tingstable'
+        minSdk 26
+        targetSdk 36
+        versionCode 1
+        versionName '0.1-beta'
+    }
+
+    signingConfigs {
+        release {
+            if (hasReleaseSigning) {
+                storeFile file(releaseStoreFile)
+                storePassword releaseStorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            if (hasReleaseSigning) signingConfig signingConfigs.release
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
