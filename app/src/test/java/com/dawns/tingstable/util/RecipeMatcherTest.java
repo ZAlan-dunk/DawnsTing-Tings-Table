@@ -64,6 +64,7 @@ public class RecipeMatcherTest {
         );
         assertTrue(matches.isEmpty());
     }
+
     @Test
     public void staplesDoNotReduceMatchPercent() {
         Recipe recipe = recipe("清炒土豆丝", ingredient("土豆"), staple("盐"), staple("食用油"));
