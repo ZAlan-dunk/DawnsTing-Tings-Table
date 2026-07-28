@@ -4,7 +4,10 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.res.ColorStateList;
+import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.Path;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
@@ -49,9 +52,11 @@ import com.dawns.tingstable.util.RecipeMatcher;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
 public class MainActivity extends Activity {
@@ -404,33 +409,85 @@ public class MainActivity extends Activity {
     }
 
     private View recipeCard(Recipe recipe, String returnPage, Runnable refresh) {
-        LinearLayout box = card();
-        box.setClickable(true);
-        box.setOnClickListener(v -> { press(v); openRecipeDetail(recipe, returnPage); });
-        LinearLayout row = new LinearLayout(this);
-        row.setGravity(Gravity.CENTER_VERTICAL);
-        LinearLayout copy = vertical(2);
-        copy.addView(text(recipe.name, 19, INK, true));
-        copy.addView(text(recipe.category + " · " + recipe.flavor + " · " + recipe.minutes + "分钟 · " + recipe.difficulty, 12, MUTED, false));
-        row.addView(copy, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+        String visualGroup = recipeVisualGroup(recipe);
+        int tone = toneForGroup(visualGroup);
+        int soft = softForGroup(visualGroup);
+
+        FrameLayout frame = new FrameLayout(this);
+        frame.setClickable(true);
+        frame.setFocusable(true);
+        frame.setElevation(dp(2));
+        frame.setBackground(gradientRoundRect(mixColor(WHITE, soft, 0.34f), WHITE, 18, mixColor(tone, LINE, 0.70f)));
+        frame.setOnClickListener(v -> { press(v); openRecipeDetail(recipe, returnPage); });
+
+        BotanicalMotifView motif = new BotanicalMotifView(this, tone);
+        motif.setAlpha(0.72f);
+        frame.addView(motif, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+
+        View accent = new View(this);
+        accent.setBackground(roundRect(tone, 4, Color.TRANSPARENT));
+        FrameLayout.LayoutParams accentParams = new FrameLayout.LayoutParams(dp(5), dp(62), Gravity.START | Gravity.TOP);
+        accentParams.topMargin = dp(16);
+        frame.addView(accent, accentParams);
+
+        LinearLayout contentBox = vertical(8);
+        contentBox.setPadding(dp(17), dp(15), dp(14), dp(14));
+
+        LinearLayout heading = new LinearLayout(this);
+        heading.setGravity(Gravity.CENTER_VERTICAL);
+        TextView seal = text(groupSymbol(visualGroup), 14, WHITE, true);
+        seal.setGravity(Gravity.CENTER);
+        seal.setBackground(gradientRoundRect(tone, mixColor(tone, GOLD, 0.22f), 14, Color.TRANSPARENT));
+        heading.addView(seal, wrapParams(dp(44), dp(44)));
+
+        LinearLayout titleCopy = vertical(1);
+        titleCopy.setPadding(dp(11), 0, dp(6), 0);
+        titleCopy.addView(text(recipe.name, 19, INK, true));
+        TextView flavor = text(recipe.flavor, 12, mixColor(tone, MUTED, 0.34f), false);
+        flavor.setMaxLines(1);
+        titleCopy.addView(flavor);
+        heading.addView(titleCopy, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+
         boolean favoriteState = repository.isFavorite(recipe.id);
-        Button favorite = textButton(favoriteState ? "★ 已收藏" : "☆ 收藏", false);
-        favorite.setTextSize(12);
-        favorite.setTextColor(favoriteState ? GOLD : MUTED);
-        favorite.setMinWidth(dp(92));
+        Button favorite = textButton(favoriteState ? "★" : "☆", false);
+        favorite.setTextSize(21);
+        favorite.setTextColor(favoriteState ? GOLD : mixColor(tone, MUTED, 0.25f));
+        favorite.setMinWidth(0);
+        favorite.setMinHeight(0);
+        favorite.setPadding(0, 0, 0, dp(2));
+        favorite.setBackground(ripple(favoriteState ? mixColor(soft, GOLD, 0.12f) : Color.argb(172, 255, 253, 248), 20, favoriteState ? mixColor(GOLD, LINE, 0.55f) : Color.TRANSPARENT));
         favorite.setContentDescription(favoriteState ? "取消收藏" + recipe.name : "收藏" + recipe.name);
-        favorite.setOnClickListener(v -> { repository.toggleFavorite(recipe.id); refresh.run(); });
-        row.addView(favorite, wrapParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-        box.addView(row);
-        TextView ingredientLine = text("食材：" + ingredientSummary(recipe), 13, MUTED, false);
-        ingredientLine.setPadding(0, dp(10), 0, 0);
-        box.addView(ingredientLine);
+        favorite.setOnClickListener(v -> { pulse(v); repository.toggleFavorite(recipe.id); refresh.run(); });
+        heading.addView(favorite, wrapParams(dp(42), dp(42)));
+        contentBox.addView(heading);
+
+        LinearLayout meta = new LinearLayout(this);
+        meta.setGravity(Gravity.CENTER_VERTICAL);
+        meta.addView(pill(recipe.category, tone, soft), wrapParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(29)));
+        addSpacer(meta, 6, 1);
+        meta.addView(pill(recipe.minutes + " 分钟", JADE, JADE_LIGHT), wrapParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(29)));
+        addSpacer(meta, 6, 1);
+        meta.addView(pill(recipe.difficulty, GOLD, mixColor(WHITE, GOLD, 0.12f)), wrapParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(29)));
         if (recipe.custom) {
-            TextView badge = text("我的配方", 11, CINNABAR, true);
-            badge.setPadding(0, dp(8), 0, 0);
-            box.addView(badge);
+            addSpacer(meta, 6, 1);
+            meta.addView(pill("私房", CINNABAR, mixColor(WHITE, CINNABAR, 0.10f)), wrapParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(29)));
         }
-        return box;
+        contentBox.addView(meta);
+
+        LinearLayout ingredients = new LinearLayout(this);
+        ingredients.setGravity(Gravity.CENTER_VERTICAL);
+        ingredients.setPadding(dp(11), dp(8), dp(11), dp(8));
+        ingredients.setBackground(roundRect(Color.argb(155, Color.red(soft), Color.green(soft), Color.blue(soft)), 12, Color.TRANSPARENT));
+        TextView leaf = text("❧", 17, tone, false);
+        leaf.setGravity(Gravity.CENTER);
+        ingredients.addView(leaf, wrapParams(dp(26), ViewGroup.LayoutParams.WRAP_CONTENT));
+        TextView ingredientLine = text(ingredientSummary(recipe), 13, mixColor(INK, tone, 0.18f), false);
+        ingredientLine.setMaxLines(2);
+        ingredients.addView(ingredientLine, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+        contentBox.addView(ingredients);
+
+        frame.addView(contentBox, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        return frame;
     }
 
     private String ingredientSummary(Recipe recipe) {
@@ -612,10 +669,13 @@ public class MainActivity extends Activity {
             for (String item : new ArrayList<>(selected)) {
                 Button chip = textButton(item + " ×", false);
                 chip.setTextSize(12);
-                chip.setTextColor(JADE_DARK);
+                String group = ingredientGroup(item);
+                int chipTone = toneForGroup(group);
+                int chipSoft = softForGroup(group);
+                chip.setTextColor(chipTone);
                 chip.setMinHeight(dp(40));
                 chip.setContentDescription("移除已选食材" + item);
-                chip.setBackground(roundRect(JADE_LIGHT, 20, Color.TRANSPARENT));
+                chip.setBackground(ripple(chipSoft, 20, mixColor(chipTone, chipSoft, 0.70f)));
                 chip.setOnClickListener(v -> {
                     selected.remove(item);
                     repository.saveSelectedIngredients(selected);
@@ -662,25 +722,69 @@ public class MainActivity extends Activity {
     private void rebuildIngredientChecks(LinearLayout checks, String query, Set<String> selected, Runnable updateSummary, TextView emptyView) {
         checks.removeAllViews();
         String normalized = query.trim().toLowerCase(Locale.ROOT);
+        Map<String, List<String>> groups = new LinkedHashMap<>();
+        for (String group : ingredientGroupOrder()) groups.put(group, new ArrayList<>());
         int count = 0;
         for (String name : repository.getAllIngredientNames()) {
             if (!normalized.isEmpty() && !RecipeMatcher.queryMatchesIngredient(normalized, name)) continue;
-            CheckBox checkBox = new CheckBox(this);
-            checkBox.setText(name);
-            checkBox.setTextSize(15);
-            checkBox.setTextColor(INK);
-            checkBox.setMinHeight(dp(50));
-            checkBox.setPadding(dp(8), dp(2), dp(8), dp(2));
-            checkBox.setBackground(roundRect(WHITE, 12, LINE));
-            checkBox.setChecked(selected.contains(name));
-            checkBox.setContentDescription((selected.contains(name) ? "已选择" : "选择") + name);
-            checkBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
-                if (isChecked) selected.add(name); else selected.remove(name);
-                repository.saveSelectedIngredients(selected);
-                updateSummary.run();
-            });
-            checks.addView(checkBox, matchWrap(6));
+            groups.get(ingredientGroup(name)).add(name);
             count++;
+        }
+
+        for (Map.Entry<String, List<String>> entry : groups.entrySet()) {
+            if (entry.getValue().isEmpty()) continue;
+            String group = entry.getKey();
+            int tone = toneForGroup(group);
+            int soft = softForGroup(group);
+            LinearLayout panel = vertical(7);
+            panel.setPadding(dp(11), dp(11), dp(11), dp(6));
+            panel.setBackground(gradientRoundRect(mixColor(WHITE, soft, 0.55f), Color.argb(246, 255, 253, 248), 18, mixColor(tone, LINE, 0.72f)));
+
+            LinearLayout header = new LinearLayout(this);
+            header.setGravity(Gravity.CENTER_VERTICAL);
+            TextView symbol = text(groupSymbol(group), 14, WHITE, true);
+            symbol.setGravity(Gravity.CENTER);
+            symbol.setBackground(roundRect(tone, 14, Color.TRANSPARENT));
+            header.addView(symbol, wrapParams(dp(38), dp(38)));
+            LinearLayout headingCopy = vertical(0);
+            headingCopy.setPadding(dp(10), 0, 0, 0);
+            headingCopy.addView(text(group, 16, mixColor(INK, tone, 0.24f), true));
+            int selectedInGroup = 0;
+            for (String item : entry.getValue()) if (selected.contains(item)) selectedInGroup++;
+            TextView groupMeta = text(entry.getValue().size() + " 种食材 · 已选 " + selectedInGroup, 11, MUTED, false);
+            headingCopy.addView(groupMeta);
+            header.addView(headingCopy, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+            TextView flourish = text("— ❧", 14, mixColor(tone, soft, 0.50f), false);
+            header.addView(flourish);
+            panel.addView(header, matchWrap(3));
+
+            GridLayout grid = new GridLayout(this);
+            int columns = isWide() ? 3 : 2;
+            grid.setColumnCount(columns);
+            grid.setUseDefaultMargins(false);
+            for (int index = 0; index < entry.getValue().size(); index++) {
+                String name = entry.getValue().get(index);
+                CheckBox checkBox = ingredientCheck(name, selected.contains(name), tone, soft);
+                checkBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                    if (isChecked) selected.add(name); else selected.remove(name);
+                    repository.saveSelectedIngredients(selected);
+                    styleIngredientCheck(checkBox, isChecked, tone, soft);
+                    int nowSelected = 0;
+                    for (String item : entry.getValue()) if (selected.contains(item)) nowSelected++;
+                    groupMeta.setText(String.format(Locale.getDefault(), "%d 种食材 · 已选 %d", entry.getValue().size(), nowSelected));
+                    pulse(checkBox);
+                    updateSummary.run();
+                });
+                GridLayout.LayoutParams params = new GridLayout.LayoutParams();
+                params.width = 0;
+                params.height = dp(50);
+                params.columnSpec = GridLayout.spec(index % columns, 1f);
+                params.rowSpec = GridLayout.spec(index / columns);
+                params.setMargins(dp(3), dp(3), dp(3), dp(3));
+                grid.addView(checkBox, params);
+            }
+            panel.addView(grid, matchWrap(0));
+            checks.addView(panel, matchWrap(10));
         }
         emptyView.setText(count == 0 ? "没有找到这个食材，可以尝试更短的名称。" : "");
     }
@@ -713,23 +817,55 @@ public class MainActivity extends Activity {
                 results.addView(almost, matchWrap(6));
                 shownAlmostTitle = true;
             }
-            LinearLayout box = card();
+            boolean ready = match.canCook();
+            int statusTone = ready ? JADE : CINNABAR;
+            int statusSoft = ready ? JADE_LIGHT : Color.rgb(247, 229, 218);
+            LinearLayout box = vertical(8);
+            box.setPadding(dp(15), dp(14), dp(15), dp(14));
+            box.setElevation(dp(2));
+            box.setBackground(gradientRoundRect(mixColor(WHITE, statusSoft, 0.55f), WHITE, 18, mixColor(statusTone, LINE, 0.66f)));
             box.setClickable(true);
-            box.setOnClickListener(v -> openRecipeDetail(match.recipe, "PICKER"));
-            box.addView(text(match.recipe.name, 19, INK, true));
-            String status = "已有 " + match.matchedCount + "/" + match.requiredCount + " 种主要食材 · " + match.percent + "%";
-            TextView statusView = text(status, 13, match.canCook() ? JADE_DARK : CINNABAR, true);
-            statusView.setPadding(0, dp(7), 0, dp(4));
-            box.addView(statusView);
+            box.setOnClickListener(v -> { press(v); openRecipeDetail(match.recipe, "PICKER"); });
+
+            LinearLayout matchHeading = new LinearLayout(this);
+            matchHeading.setGravity(Gravity.CENTER_VERTICAL);
+            TextView stateIcon = text(ready ? "✓" : "差", 14, WHITE, true);
+            stateIcon.setGravity(Gravity.CENTER);
+            stateIcon.setBackground(roundRect(statusTone, 16, Color.TRANSPARENT));
+            matchHeading.addView(stateIcon, wrapParams(dp(40), dp(40)));
+            LinearLayout matchCopy = vertical(1);
+            matchCopy.setPadding(dp(10), 0, 0, 0);
+            matchCopy.addView(text(match.recipe.name, 19, INK, true));
+            matchCopy.addView(text(ready ? "食材齐备，可以下厨" : "缺 " + match.missing.size() + " 种食材", 12, statusTone, true));
+            matchHeading.addView(matchCopy, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+            matchHeading.addView(pill(match.percent + "%", statusTone, statusSoft), wrapParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(30)));
+            box.addView(matchHeading);
+
+            LinearLayout progressTrack = new LinearLayout(this);
+            progressTrack.setBackground(roundRect(mixColor(statusSoft, LINE, 0.26f), 3, Color.TRANSPARENT));
+            View progress = new View(this);
+            progress.setBackground(roundRect(statusTone, 3, Color.TRANSPARENT));
+            progressTrack.addView(progress, new LinearLayout.LayoutParams(0, dp(6), Math.max(1, match.percent)));
+            if (match.percent < 100) progressTrack.addView(new Space(this), new LinearLayout.LayoutParams(0, dp(6), 100 - match.percent));
+            box.addView(progressTrack, wrapParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(6)));
+
+            String status = "已有 " + match.matchedCount + "/" + match.requiredCount + " 种主要食材";
+            box.addView(text(status, 12, MUTED, false));
             if (!match.missing.isEmpty()) {
-                TextView missing = text("还缺：" + String.join("、", match.missing), 13, MUTED, false);
-                missing.setPadding(0, 0, 0, dp(8));
-                box.addView(missing);
+                LinearLayout missingWrap = new LinearLayout(this);
+                missingWrap.setGravity(Gravity.CENTER_VERTICAL);
+                missingWrap.setPadding(dp(10), dp(8), dp(10), dp(8));
+                missingWrap.setBackground(roundRect(Color.argb(175, Color.red(statusSoft), Color.green(statusSoft), Color.blue(statusSoft)), 11, Color.TRANSPARENT));
+                missingWrap.addView(text("待备  ", 12, statusTone, true));
+                missingWrap.addView(text(String.join("、", match.missing), 13, INK, false), new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+                box.addView(missingWrap);
                 Button buy = outlineButton("加入采购清单");
+                buy.setTextColor(statusTone);
+                buy.setBackground(ripple(Color.argb(160, 255, 253, 248), 12, mixColor(statusTone, LINE, 0.55f)));
                 buy.setOnClickListener(v -> { repository.addShoppingItems(match.missing); toast("已加入采购清单"); });
                 box.addView(buy, wrapParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(46)));
             }
-            results.addView(box, matchWrap(8));
+            results.addView(box, matchWrap(9));
         }
     }
 
@@ -744,21 +880,41 @@ public class MainActivity extends Activity {
             body.addView(emptyState("采购清单还是空的。\n可以从食材匹配结果中加入缺少的食材。"));
         } else {
             for (String item : shopping) {
+                String group = ingredientGroup(item);
+                int tone = toneForGroup(group);
+                int soft = softForGroup(group);
+                LinearLayout row = new LinearLayout(this);
+                row.setGravity(Gravity.CENTER_VERTICAL);
+                row.setPadding(dp(7), dp(5), dp(11), dp(5));
+                row.setElevation(dp(1));
+                row.setBackground(gradientRoundRect(mixColor(WHITE, soft, 0.48f), WHITE, 15, mixColor(tone, LINE, 0.72f)));
+
+                TextView symbol = text(groupSymbol(group), 13, WHITE, true);
+                symbol.setGravity(Gravity.CENTER);
+                symbol.setBackground(roundRect(tone, 14, Color.TRANSPARENT));
+                row.addView(symbol, wrapParams(dp(38), dp(38)));
+
                 CheckBox box = new CheckBox(this);
                 box.setText(item);
                 box.setTextSize(16);
+                box.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
                 box.setTextColor(INK);
+                box.setGravity(Gravity.CENTER_VERTICAL);
                 box.setMinHeight(dp(52));
-                box.setPadding(dp(12), dp(2), dp(12), dp(2));
-                box.setBackground(roundRect(WHITE, 12, LINE));
+                box.setPadding(dp(10), 0, dp(4), 0);
+                box.setButtonTintList(new ColorStateList(new int[][]{new int[]{android.R.attr.state_checked}, new int[]{}}, new int[]{tone, mixColor(tone, LINE, 0.62f)}));
+                box.setBackgroundColor(Color.TRANSPARENT);
                 box.setContentDescription("标记已买到" + item);
                 box.setOnCheckedChangeListener((button, checked) -> {
                     if (!checked) return;
+                    pulse(row);
                     repository.removeShoppingItem(item);
                     showShoppingList();
                     showUndoMessage("已移除：" + item, () -> { repository.addShoppingItems(Collections.singletonList(item)); showShoppingList(); }, null);
                 });
-                body.addView(box, matchWrap(7));
+                row.addView(box, new LinearLayout.LayoutParams(0, dp(52), 1));
+                row.addView(pill(group, tone, soft), wrapParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(28)));
+                body.addView(row, matchWrap(8));
             }
             Button clear = outlineButton("清空采购清单");
             clear.setTextColor(CINNABAR);
@@ -1008,6 +1164,157 @@ public class MainActivity extends Activity {
         return card;
     }
 
+    private String recipeVisualGroup(Recipe recipe) {
+        if (recipe.custom) return "私房";
+        String haystack = recipe.name + " " + recipe.category + " " + ingredientSummary(recipe);
+        if (containsAny(haystack, "鸡翅", "鸡胸", "鸡肉", "猪", "肉", "牛", "排骨", "羊")) return "肉禽";
+        if (containsAny(haystack, "鱼", "虾", "蟹", "贝", "紫菜", "海带")) return "水鲜";
+        if (containsAny(haystack, "鸡蛋", "豆腐", "豆制品", "蛋")) return "蛋豆";
+        if (containsAny(haystack, "米饭", "小米", "面", "粥", "馒头", "主食", "早餐")) return "谷物";
+        if (containsAny(haystack, "汤", "羹", "炖菜")) return "汤羹";
+        return "时蔬";
+    }
+
+    private List<String> ingredientGroupOrder() {
+        return Arrays.asList("肉禽", "水鲜", "蛋豆", "时蔬", "谷物", "其他");
+    }
+
+    private String ingredientGroup(String name) {
+        String value = name == null ? "" : name;
+        if (containsAny(value, "猪", "牛", "羊", "鸡翅", "鸡胸", "鸡肉", "鸭", "鹅", "排骨", "肉")) return "肉禽";
+        if (containsAny(value, "鱼", "虾", "蟹", "贝", "紫菜", "海带", "鱿鱼")) return "水鲜";
+        if (containsAny(value, "蛋", "豆腐", "豆干", "豆皮", "牛奶", "奶酪")) return "蛋豆";
+        if (containsAny(value, "米", "面", "馒头", "饼", "粉", "小米", "燕麦")) return "谷物";
+        if (containsAny(value, "西红柿", "番茄", "土豆", "椒", "黄瓜", "萝卜", "茄子", "青菜", "生菜", "西兰花", "菜花", "香菇", "菌", "南瓜", "葱", "姜", "蒜")) return "时蔬";
+        return "其他";
+    }
+
+    private boolean containsAny(String value, String... needles) {
+        for (String needle : needles) if (value.contains(needle)) return true;
+        return false;
+    }
+
+    private int toneForGroup(String group) {
+        switch (group) {
+            case "肉禽": return Color.rgb(157, 80, 69);
+            case "水鲜": return Color.rgb(59, 108, 119);
+            case "蛋豆": return Color.rgb(171, 126, 53);
+            case "时蔬": return Color.rgb(74, 117, 77);
+            case "谷物": return Color.rgb(145, 111, 66);
+            case "汤羹": return Color.rgb(74, 112, 104);
+            case "私房": return Color.rgb(111, 83, 119);
+            default: return Color.rgb(103, 105, 97);
+        }
+    }
+
+    private int softForGroup(String group) {
+        switch (group) {
+            case "肉禽": return Color.rgb(246, 224, 214);
+            case "水鲜": return Color.rgb(219, 235, 236);
+            case "蛋豆": return Color.rgb(246, 235, 201);
+            case "时蔬": return Color.rgb(224, 237, 217);
+            case "谷物": return Color.rgb(239, 225, 200);
+            case "汤羹": return Color.rgb(222, 235, 227);
+            case "私房": return Color.rgb(235, 224, 237);
+            default: return Color.rgb(235, 232, 222);
+        }
+    }
+
+    private String groupSymbol(String group) {
+        switch (group) {
+            case "肉禽": return "炙";
+            case "水鲜": return "鲜";
+            case "蛋豆": return "豆";
+            case "时蔬": return "蔬";
+            case "谷物": return "禾";
+            case "汤羹": return "羹";
+            case "私房": return "藏";
+            default: return "味";
+        }
+    }
+
+    private TextView pill(String label, int tone, int soft) {
+        TextView badge = text(label, 11, tone, true);
+        badge.setGravity(Gravity.CENTER);
+        badge.setSingleLine(true);
+        badge.setPadding(dp(10), 0, dp(10), 0);
+        badge.setBackground(roundRect(Color.argb(210, Color.red(soft), Color.green(soft), Color.blue(soft)), 14, mixColor(tone, soft, 0.72f)));
+        return badge;
+    }
+
+    private CheckBox ingredientCheck(String name, boolean checked, int tone, int soft) {
+        CheckBox checkBox = new CheckBox(this);
+        checkBox.setText(name);
+        checkBox.setTextSize(14);
+        checkBox.setGravity(Gravity.CENTER_VERTICAL);
+        checkBox.setMinHeight(dp(48));
+        checkBox.setMaxLines(1);
+        checkBox.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        checkBox.setPadding(dp(10), 0, dp(7), 0);
+        checkBox.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        checkBox.setTextDirection(View.TEXT_DIRECTION_LTR);
+        checkBox.setButtonTintList(new ColorStateList(
+                new int[][]{new int[]{android.R.attr.state_checked}, new int[]{}},
+                new int[]{tone, mixColor(tone, LINE, 0.62f)}));
+        checkBox.setChecked(checked);
+        checkBox.setContentDescription((checked ? "已选择" : "选择") + name);
+        styleIngredientCheck(checkBox, checked, tone, soft);
+        return checkBox;
+    }
+
+    private void styleIngredientCheck(CheckBox checkBox, boolean checked, int tone, int soft) {
+        checkBox.setTextColor(checked ? mixColor(INK, tone, 0.28f) : INK);
+        checkBox.setTypeface(Typeface.DEFAULT, checked ? Typeface.BOLD : Typeface.NORMAL);
+        int fill = checked ? mixColor(soft, WHITE, 0.20f) : Color.argb(188, 255, 253, 248);
+        int stroke = checked ? tone : mixColor(tone, LINE, 0.74f);
+        checkBox.setBackground(ripple(fill, 13, stroke));
+        checkBox.setContentDescription((checked ? "已选择" : "选择") + checkBox.getText());
+    }
+
+    private int mixColor(int first, int second, float secondAmount) {
+        float amount = Math.max(0f, Math.min(1f, secondAmount));
+        int red = Math.round(Color.red(first) * (1f - amount) + Color.red(second) * amount);
+        int green = Math.round(Color.green(first) * (1f - amount) + Color.green(second) * amount);
+        int blue = Math.round(Color.blue(first) * (1f - amount) + Color.blue(second) * amount);
+        return Color.rgb(red, green, blue);
+    }
+
+    private Drawable gradientRoundRect(int start, int end, int radiusDp, int stroke) {
+        GradientDrawable shape = new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{start, end});
+        shape.setCornerRadius(dp(radiusDp));
+        if (stroke != Color.TRANSPARENT) shape.setStroke(dp(1), stroke);
+        return shape;
+    }
+
+    private final class BotanicalMotifView extends View {
+        private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Path path = new Path();
+
+        BotanicalMotifView(Activity context, int tone) {
+            super(context);
+            paint.setColor(Color.argb(30, Color.red(tone), Color.green(tone), Color.blue(tone)));
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeWidth(dp(1));
+            setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
+        }
+
+        @Override
+        protected void onDraw(Canvas canvas) {
+            super.onDraw(canvas);
+            float right = getWidth() - dp(10);
+            float top = dp(12);
+            path.reset();
+            path.moveTo(right, top);
+            path.cubicTo(right - dp(4), top + dp(18), right - dp(23), top + dp(31), right - dp(38), top + dp(50));
+            path.cubicTo(right - dp(47), top + dp(62), right - dp(50), top + dp(76), right - dp(48), top + dp(91));
+            canvas.drawPath(path, paint);
+            canvas.drawOval(right - dp(24), top + dp(17), right - dp(8), top + dp(29), paint);
+            canvas.drawOval(right - dp(43), top + dp(39), right - dp(25), top + dp(51), paint);
+            canvas.drawOval(right - dp(57), top + dp(61), right - dp(40), top + dp(73), paint);
+            canvas.drawCircle(dp(22), getHeight() - dp(15), dp(10), paint);
+            canvas.drawCircle(dp(22), getHeight() - dp(15), dp(4), paint);
+        }
+    }
     private TextView text(String value, int sp, int color, boolean bold) {
         TextView view = new TextView(this);
         view.setText(value);
