@@ -8,9 +8,9 @@
 
 ## 下载 Android 测试版
 
-- 当前版本：**v0.2 测试版**
+- 当前版本：**v0.3 测试版**
 - 系统要求：Android 8.0（API 26）及以上
-- 安装包：[前往 GitHub Releases 下载 v0.2 测试版](https://github.com/ZAlan-dunk/DawnsTing-Tings-Table/releases/tag/v0.2-beta)
+- 安装包：[前往 GitHub Releases 下载 v0.3 测试版](https://github.com/ZAlan-dunk/DawnsTing-Tings-Table/releases/tag/v0.3-beta)
 
 > APK 使用与 v0.1 相同的发布密钥签名，可直接覆盖安装并保留原有收藏、自定义菜谱、食材选择和采购清单。首次从浏览器或文件管理器安装 APK 时，Android 可能要求允许“安装未知应用”。
 
@@ -42,7 +42,7 @@
 - 勾选后移除，并支持短时间撤销
 - 清空全部项目前进行二次确认
 
-## v0.2 体验优化
+## v0.3 视觉升级
 
 - 修复内容与手机状态栏、刘海/挖孔区域重叠的问题
 - 适配底部手势区、三键导航区和软键盘
@@ -70,7 +70,7 @@
 - 应用不申请 `INTERNET` 网络权限
 - 收藏、自定义菜谱、食材选择和采购清单均保存在当前设备
 - 使用 Android `SharedPreferences` 与 JSON 持久化本地数据
-- v0.2 兼容 v0.1 的本地数据键和自定义菜谱格式
+- v0.3 兼容 v0.1/v0.2 的本地数据键和自定义菜谱格式
 
 > 卸载应用通常会清除本地数据。当前版本尚未提供导入导出，请在卸载前留意自定义内容。
 

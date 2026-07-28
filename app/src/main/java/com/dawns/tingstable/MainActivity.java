@@ -9,6 +9,7 @@ import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.RippleDrawable;
+import android.animation.ValueAnimator;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -27,6 +28,7 @@ import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.GridLayout;
 import android.widget.HorizontalScrollView;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.Space;
@@ -53,20 +55,22 @@ import java.util.Locale;
 import java.util.Set;
 
 public class MainActivity extends Activity {
-    private static final int PAPER = Color.rgb(255, 249, 238);
-    private static final int INK = Color.rgb(37, 53, 47);
-    private static final int JADE = Color.rgb(85, 117, 104);
-    private static final int JADE_DARK = Color.rgb(52, 78, 69);
-    private static final int JADE_LIGHT = Color.rgb(232, 240, 236);
-    private static final int CINNABAR = Color.rgb(168, 75, 63);
-    private static final int GOLD = Color.rgb(125, 87, 25);
-    private static final int MUTED = Color.rgb(105, 112, 107);
-    private static final int LINE = Color.rgb(224, 214, 195);
-    private static final int WHITE = Color.WHITE;
+    private static final int PAPER = Color.rgb(244, 235, 221);
+    private static final int INK = Color.rgb(36, 51, 47);
+    private static final int JADE = Color.rgb(40, 83, 74);
+    private static final int JADE_DARK = Color.rgb(23, 58, 53);
+    private static final int JADE_LIGHT = Color.rgb(228, 238, 231);
+    private static final int CINNABAR = Color.rgb(182, 93, 76);
+    private static final int GOLD = Color.rgb(168, 132, 66);
+    private static final int MUTED = Color.rgb(111, 117, 110);
+    private static final int LINE = Color.rgb(216, 203, 183);
+    private static final int WHITE = Color.rgb(255, 253, 248);
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private RecipeRepository repository;
-    private LinearLayout root;
+    private FrameLayout root;
+    private LinearLayout shell;
+    private AmbientBackgroundView ambientBackground;
     private LinearLayout topBar;
     private LinearLayout bottomNav;
     private FrameLayout content;
@@ -129,14 +133,21 @@ public class MainActivity extends Activity {
     }
 
     private void buildShell() {
-        root = new LinearLayout(this);
-        root.setOrientation(LinearLayout.VERTICAL);
+        root = new FrameLayout(this);
         root.setBackgroundColor(PAPER);
         root.setFitsSystemWindows(false);
 
+        ambientBackground = new AmbientBackgroundView(this);
+        root.addView(ambientBackground, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+
+        shell = new LinearLayout(this);
+        shell.setOrientation(LinearLayout.VERTICAL);
+        shell.setBackgroundColor(Color.TRANSPARENT);
+
         topBar = new LinearLayout(this);
         topBar.setGravity(Gravity.CENTER_VERTICAL);
-        topBar.setBackgroundColor(JADE_DARK);
+        topBar.setBackground(gradientRect(JADE_DARK, JADE, 0, 0, 0, 0));
         topBar.setMinimumHeight(dp(64));
 
         backButton = textButton("‹", true);
@@ -150,30 +161,23 @@ public class MainActivity extends Activity {
         titleView.setMaxLines(2);
         topBar.addView(titleView, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
 
-        TextView seal = text("婷", 18, WHITE, true);
-        seal.setGravity(Gravity.CENTER);
-        seal.setContentDescription("婷馔清欢");
-        seal.setBackground(roundRect(CINNABAR, 12, Color.TRANSPARENT));
-        seal.setMinWidth(dp(40));
-        seal.setMinHeight(dp(40));
-        seal.setPadding(dp(10), dp(4), dp(10), dp(4));
-        topBar.addView(seal, wrapParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-        root.addView(topBar, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        shell.addView(topBar, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
         content = new FrameLayout(this);
-        content.setBackgroundColor(PAPER);
-        root.addView(content, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
+        content.setBackgroundColor(Color.TRANSPARENT);
+        shell.addView(content, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
 
         bottomNav = new LinearLayout(this);
         bottomNav.setGravity(Gravity.CENTER);
-        bottomNav.setBackgroundColor(WHITE);
+        bottomNav.setBackground(roundRect(Color.argb(238, 255, 253, 248), 22, LINE));
         bottomNav.setMinimumHeight(dp(64));
         addNav(0, "首页", com.dawns.tingstable.R.drawable.ic_nav_home, this::showHome);
         addNav(1, "配方", com.dawns.tingstable.R.drawable.ic_nav_recipes, () -> showRecipes(false));
         addNav(2, "选菜", com.dawns.tingstable.R.drawable.ic_nav_ingredients, this::showIngredientPicker);
         addNav(3, "收藏", com.dawns.tingstable.R.drawable.ic_nav_favorite, () -> showRecipes(true));
         addNav(4, "清单", com.dawns.tingstable.R.drawable.ic_nav_shopping, this::showShoppingList);
-        root.addView(bottomNav, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        shell.addView(bottomNav, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        root.addView(shell, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         setContentView(root);
 
         ViewCompat.setOnApplyWindowInsetsListener(root, (view, insets) -> {
@@ -237,6 +241,14 @@ public class MainActivity extends Activity {
         int width = screenWidthDp >= 600 ? dp(Math.min(760, Math.max(320, screenWidthDp - 32))) : ViewGroup.LayoutParams.MATCH_PARENT;
         FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(width, ViewGroup.LayoutParams.MATCH_PARENT, Gravity.CENTER_HORIZONTAL);
         content.addView(view, params);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && ValueAnimator.areAnimatorsEnabled()) {
+            view.setAlpha(0f);
+            view.setTranslationY(dp(8));
+            view.animate().alpha(1f).translationY(0f).setDuration(220L).start();
+        } else {
+            view.setAlpha(1f);
+            view.setTranslationY(0f);
+        }
         applySafeInsets();
     }
 
@@ -250,51 +262,71 @@ public class MainActivity extends Activity {
     }
 
     private void showHome() {
-        LinearLayout body = pageBody(18);
+        LinearLayout body = pageBody(16);
         LinearLayout hero = card();
-        hero.setBackground(roundRect(JADE, 22, Color.TRANSPARENT));
-        hero.addView(text("TING'S TABLE · v0.2 测试版", 12, Color.rgb(245, 237, 214), true));
-        TextView brand = text("婷馔清欢", 31, WHITE, true);
-        brand.setPadding(0, dp(8), 0, dp(4));
+        hero.setPadding(dp(22), dp(24), dp(22), dp(22));
+        hero.setElevation(dp(4));
+        hero.setBackground(gradientRect(JADE_DARK, JADE, 22, 22, 22, 22));
+        TextView eyebrow = text("食  笺", 12, Color.rgb(232, 210, 160), true);
+        eyebrow.setLetterSpacing(0.18f);
+        hero.addView(eyebrow);
+        TextView brand = text("婷馔清欢", 32, WHITE, true);
+        brand.setPadding(0, dp(10), 0, dp(3));
         hero.addView(brand);
-        hero.addView(text("人间有味，四时清欢。", 17, WHITE, false));
-        TextView intro = text("一款只为自己准备的离线家常菜工具。没有账号、社区、社交或商业内容，打开就能用。", 14, WHITE, false);
-        intro.setPadding(0, dp(14), 0, 0);
-        hero.addView(intro);
+        hero.addView(text("人间有味，四时清欢。", 17, Color.rgb(245, 237, 214), false));
+        View rule = new View(this);
+        rule.setBackgroundColor(Color.argb(100, 232, 210, 160));
+        LinearLayout.LayoutParams ruleParams = new LinearLayout.LayoutParams(dp(54), dp(1));
+        ruleParams.topMargin = dp(16);
+        ruleParams.bottomMargin = dp(14);
+        hero.addView(rule, ruleParams);
+        LinearLayout marks = new LinearLayout(this);
+        marks.setGravity(Gravity.CENTER_VERTICAL);
+        marks.addView(text("家常", 12, Color.rgb(245, 237, 214), false));
+        addSpacer(marks, 16, 1);
+        marks.addView(text("四时", 12, Color.rgb(245, 237, 214), false));
+        addSpacer(marks, 16, 1);
+        marks.addView(text("清欢", 12, Color.rgb(245, 237, 214), false));
+        hero.addView(marks);
         body.addView(hero, matchWrap(18));
 
-        body.addView(section("今天想怎么做？"), matchWrap(16));
-        body.addView(actionCard("配方表", "浏览家常菜谱，查看食材、用量与分步做法。", "查看全部配方", () -> showRecipes(false)), matchWrap(10));
-        body.addView(actionCard("通过食材选择菜单", "勾选已经购入或家中现有的食材，看看现在能做什么。", "开始选择食材", this::showIngredientPicker), matchWrap(14));
+        body.addView(section("今日食意"), matchWrap(8));
+        body.addView(actionCard("配方表", "翻开一份家常做法。", "查看全部配方", () -> showRecipes(false)), matchWrap(10));
+        body.addView(actionCard("通过食材选择菜单", "从手边已有的食材开始。", "开始选择食材", this::showIngredientPicker), matchWrap(14));
 
         LinearLayout quick = new LinearLayout(this);
         quick.setOrientation(LinearLayout.HORIZONTAL);
-        Button favorites = outlineButton("我的收藏 · " + repository.getFavorites().size());
+        Button favorites = outlineButton("收藏  ·  " + repository.getFavorites().size());
         favorites.setOnClickListener(v -> showRecipes(true));
         quick.addView(favorites, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
         addSpacer(quick, 10, 1);
-        Button shopping = outlineButton("采购清单 · " + repository.getShoppingItems().size());
+        Button shopping = outlineButton("清单  ·  " + repository.getShoppingItems().size());
         shopping.setOnClickListener(v -> showShoppingList());
         quick.addView(shopping, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
         body.addView(quick, matchWrap(8));
-
-        TextView offline = text("离线可用 · 数据保存在本机 · 无需登录", 12, MUTED, false);
-        offline.setGravity(Gravity.CENTER);
-        offline.setPadding(0, dp(18), 0, 0);
-        body.addView(offline);
         setPage("HOME", "婷馔清欢", null, scroll(body), true);
     }
 
     private View actionCard(String title, String description, String buttonText, Runnable action) {
         LinearLayout box = card();
         box.setClickable(true);
-        box.setOnClickListener(v -> action.run());
-        box.addView(text(title, 22, INK, true));
+        box.setOnClickListener(v -> { press(v); action.run(); });
+        LinearLayout heading = new LinearLayout(this);
+        heading.setGravity(Gravity.CENTER_VERTICAL);
+        ImageView icon = new ImageView(this);
+        icon.setImageResource(title.startsWith("配方") ? R.drawable.ic_home_recipe : R.drawable.ic_home_picker);
+        icon.setPadding(dp(12), dp(12), dp(12), dp(12));
+        icon.setBackground(roundRect(JADE_LIGHT, 16, Color.TRANSPARENT));
+        heading.addView(icon, wrapParams(dp(52), dp(52)));
+        TextView headingText = text(title, 20, INK, true);
+        headingText.setPadding(dp(12), 0, 0, 0);
+        heading.addView(headingText, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+        box.addView(heading);
         TextView desc = text(description, 14, MUTED, false);
-        desc.setPadding(0, dp(8), 0, dp(14));
+        desc.setPadding(0, dp(12), 0, dp(12));
         box.addView(desc);
         Button button = primaryButton(buttonText);
-        button.setOnClickListener(v -> action.run());
+        button.setOnClickListener(v -> { press(v); action.run(); });
         box.addView(button, wrapParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(48)));
         return box;
     }
@@ -374,7 +406,7 @@ public class MainActivity extends Activity {
     private View recipeCard(Recipe recipe, String returnPage, Runnable refresh) {
         LinearLayout box = card();
         box.setClickable(true);
-        box.setOnClickListener(v -> openRecipeDetail(recipe, returnPage));
+        box.setOnClickListener(v -> { press(v); openRecipeDetail(recipe, returnPage); });
         LinearLayout row = new LinearLayout(this);
         row.setGravity(Gravity.CENTER_VERTICAL);
         LinearLayout copy = vertical(2);
@@ -1003,7 +1035,7 @@ public class MainActivity extends Activity {
         field.setImeOptions(EditorInfo.IME_ACTION_NEXT);
         field.setMinHeight(dp(52));
         field.setPadding(dp(14), dp(4), dp(14), dp(4));
-        field.setBackground(roundRect(WHITE, 12, LINE));
+        field.setBackground(roundRect(Color.argb(248, 255, 253, 248), 12, LINE));
         return field;
     }
 
@@ -1046,6 +1078,26 @@ public class MainActivity extends Activity {
         return shape;
     }
 
+    private GradientDrawable gradientRect(int start, int end, int topLeft, int topRight, int bottomRight, int bottomLeft) {
+        GradientDrawable shape = new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{start, end});
+        shape.setCornerRadii(new float[]{dp(topLeft), dp(topLeft), dp(topRight), dp(topRight), dp(bottomRight), dp(bottomRight), dp(bottomLeft), dp(bottomLeft)});
+        return shape;
+    }
+
+    private void press(View view) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && ValueAnimator.areAnimatorsEnabled()) {
+            view.animate().scaleX(0.985f).scaleY(0.985f).setDuration(70L).withEndAction(() ->
+                    view.animate().scaleX(1f).scaleY(1f).setDuration(150L).start()).start();
+        }
+    }
+
+    private void pulse(View view) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && ValueAnimator.areAnimatorsEnabled()) {
+            view.animate().scaleX(1.08f).scaleY(1.08f).setDuration(90L).withEndAction(() ->
+                    view.animate().scaleX(1f).scaleY(1f).setDuration(160L).start()).start();
+        }
+    }
+
     private Drawable ripple(int fill, int radiusDp, int stroke) {
         return new RippleDrawable(ColorStateList.valueOf(Color.argb(36, 37, 53, 47)), roundRect(fill, radiusDp, stroke), null);
     }
@@ -1061,6 +1113,7 @@ public class MainActivity extends Activity {
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(true);
         scroll.setClipToPadding(false);
+        scroll.setBackgroundColor(Color.TRANSPARENT);
         scroll.addView(child, new ScrollView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         return scroll;
     }
