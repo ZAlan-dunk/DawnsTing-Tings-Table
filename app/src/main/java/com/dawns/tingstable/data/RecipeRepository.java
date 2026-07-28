@@ -24,6 +24,8 @@ public class RecipeRepository {
     private static final String KEY_FAVORITES = "favorites";
     private static final String KEY_SELECTED = "selected_ingredients";
     private static final String KEY_SHOPPING = "shopping_list";
+    private static final String KEY_SHOPPING_ORDERED = "shopping_list_ordered_v02";
+    private static final String KEY_DATA_VERSION = "data_version";
 
     private final SharedPreferences preferences;
     private final List<Recipe> builtIns;
@@ -31,6 +33,7 @@ public class RecipeRepository {
     public RecipeRepository(Context context) {
         preferences = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         builtIns = createBuiltIns();
+        preferences.edit().putInt(KEY_DATA_VERSION, Math.max(2, preferences.getInt(KEY_DATA_VERSION, 1))).apply();
     }
 
     public List<Recipe> getAllRecipes() {
@@ -104,21 +107,53 @@ public class RecipeRepository {
     public Set<String> getSelectedIngredients() { return getStringSet(KEY_SELECTED); }
     public void saveSelectedIngredients(Set<String> values) { saveStringSet(KEY_SELECTED, values); }
 
-    public Set<String> getShoppingList() { return getStringSet(KEY_SHOPPING); }
+    public Set<String> getShoppingList() { return new LinkedHashSet<>(getShoppingItems()); }
+
+    public List<String> getShoppingItems() {
+        List<String> result = new ArrayList<>();
+        String ordered = preferences.getString(KEY_SHOPPING_ORDERED, "");
+        if (!ordered.isEmpty()) {
+            try {
+                JSONArray array = new JSONArray(ordered);
+                for (int i = 0; i < array.length(); i++) {
+                    String item = array.optString(i, "").trim();
+                    if (!item.isEmpty() && !result.contains(item)) result.add(item);
+                }
+                return result;
+            } catch (Exception ignored) { }
+        }
+        result.addAll(getStringSet(KEY_SHOPPING));
+        Collections.sort(result);
+        return result;
+    }
 
     public void addShoppingItems(List<String> values) {
-        Set<String> items = getShoppingList();
-        items.addAll(values);
-        saveStringSet(KEY_SHOPPING, items);
+        List<String> items = getShoppingItems();
+        for (String value : values) {
+            String item = value == null ? "" : value.trim();
+            if (!item.isEmpty() && !items.contains(item)) items.add(item);
+        }
+        saveShoppingItems(items);
     }
 
     public void removeShoppingItem(String value) {
-        Set<String> items = getShoppingList();
+        List<String> items = getShoppingItems();
         items.remove(value);
-        saveStringSet(KEY_SHOPPING, items);
+        saveShoppingItems(items);
     }
 
-    public void clearShoppingList() { preferences.edit().remove(KEY_SHOPPING).apply(); }
+    public void clearShoppingList() {
+        preferences.edit().remove(KEY_SHOPPING).remove(KEY_SHOPPING_ORDERED).apply();
+    }
+
+    private void saveShoppingItems(List<String> values) {
+        JSONArray array = new JSONArray();
+        for (String value : values) array.put(value);
+        preferences.edit()
+                .putString(KEY_SHOPPING_ORDERED, array.toString())
+                .putStringSet(KEY_SHOPPING, new LinkedHashSet<>(values))
+                .apply();
+    }
 
     private Set<String> getStringSet(String key) {
         return new LinkedHashSet<>(preferences.getStringSet(key, Collections.emptySet()));

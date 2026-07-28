@@ -1,4 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">婷馔清欢</string>
+    <string name="recipe_count">共 %1$d 道</string>
+    <string name="recipe_search_count">共 %1$d 道 · 当前搜索结果</string>
+    <string name="favorite_count">已收藏 %1$d 道</string>
+    <string name="favorite_search_count">已收藏 %1$d 道 · 当前搜索结果</string>
+    <string name="selected_ingredient_count">已选择 %1$d 种</string>
 </resources>
