@@ -1,5 +1,7 @@
 package com.dawns.tingstable.model;
 
+import com.dawns.tingstable.util.RecipeCuisines;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -11,6 +13,7 @@ public class Recipe {
     public String id;
     public String name;
     public String category;
+    public String cuisine;
     public String flavor;
     public String difficulty;
     public int minutes;
@@ -23,9 +26,17 @@ public class Recipe {
     public Recipe(String id, String name, String category, String flavor, String difficulty,
                   int minutes, int servings, List<Ingredient> ingredients,
                   List<String> steps, String tips, boolean custom) {
+        this(id, name, category, RecipeCuisines.HOME_FUSION, flavor, difficulty,
+                minutes, servings, ingredients, steps, tips, custom);
+    }
+
+    public Recipe(String id, String name, String category, String cuisine, String flavor, String difficulty,
+                  int minutes, int servings, List<Ingredient> ingredients,
+                  List<String> steps, String tips, boolean custom) {
         this.id = id;
         this.name = name;
         this.category = category;
+        this.cuisine = RecipeCuisines.normalize(cuisine);
         this.flavor = flavor;
         this.difficulty = difficulty;
         this.minutes = minutes;
@@ -41,6 +52,7 @@ public class Recipe {
         json.put("id", id);
         json.put("name", name);
         json.put("category", category);
+        json.put("cuisine", cuisine);
         json.put("flavor", flavor);
         json.put("difficulty", difficulty);
         json.put("minutes", minutes);
@@ -75,7 +87,8 @@ public class Recipe {
         }
         return new Recipe(
                 json.optString("id"), json.optString("name"),
-                json.optString("category", "家常菜"), json.optString("flavor", "家常"),
+                json.optString("category", "家常菜"), json.optString("cuisine"),
+                json.optString("flavor", "家常"),
                 json.optString("difficulty", "简单"), json.optInt("minutes", 20),
                 json.optInt("servings", 2), ingredients, steps,
                 json.optString("tips"), json.optBoolean("custom", true)
