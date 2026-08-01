@@ -8,7 +8,8 @@
 - 包名：`com.dawns.tingstable`
 - 最低系统：Android 8.0 / API 26
 - 目标系统：Android SDK 36
-- 发布形式：沿用原签名的 APK 与 GitHub Pre-release
+- 发布形式：使用持续保留的个人测试版专用签名 APK 与 GitHub Pre-release
+- 使用边界：仅供个人、非商业用途；当前版本为功能测试版，不面向商业运营或生产环境
 - 本版本只优化菜谱分类、筛选和交互，不重做菜篮、特典或采购清单业务。
 - 应用保持完全离线，不增加 `INTERNET` 或其他权限。
 
@@ -85,6 +86,7 @@ AND 搜索词
 - `testDebugUnitTest`、`lintDebug`、`assembleDebug` 和 `assembleRelease` 全部成功，Lint 为 0 项。
 - APK 元数据显示 `versionCode 6`、`versionName 0.5-beta`、`minSdk 26` 和 `targetSdk 36`。
 - APK 清单不包含 `android.permission.INTERNET`。
-- v0.5 APK 与 v0.4 发布 APK 的签名证书 SHA-256 完全一致。
+- v0.5 APK 使用新的个人测试版专用证书签名并通过 `apksigner` 验证。
+- 发布说明必须明确 v0.4 原私钥不可用、不能覆盖安装，以及卸载旧版可能清除本地数据。
 - 创建新 Tag `v0.5-beta` 和新的 GitHub Pre-release，附件包含 APK 与 `SHA256.txt`。
 - v0.1～v0.4 的 Tag、Release、说明和附件保持不变。
