@@ -71,11 +71,11 @@ public class MainActivity extends Activity {
     private static final int JADE = Color.rgb(40, 83, 74);
     private static final int JADE_DARK = Color.rgb(23, 58, 53);
     private static final int JADE_LIGHT = Color.rgb(228, 238, 231);
-    private static final int CINNABAR = Color.rgb(182, 93, 76);
+    private static final int CINNABAR = Color.rgb(152, 73, 61);
     private static final int CINNABAR_LIGHT = Color.rgb(246, 230, 225);
-    private static final int GOLD = Color.rgb(168, 132, 66);
+    private static final int GOLD = Color.rgb(128, 97, 38);
     private static final int GOLD_LIGHT = Color.rgb(244, 236, 214);
-    private static final int MUTED = Color.rgb(105, 113, 106);
+    private static final int MUTED = Color.rgb(93, 101, 95);
     private static final int LINE = Color.rgb(220, 210, 194);
     private static final int WHITE = Color.rgb(255, 253, 248);
 
@@ -611,9 +611,13 @@ public class MainActivity extends Activity {
         LinearLayout actions = new LinearLayout(this);
         actions.setOrientation(LinearLayout.HORIZONTAL);
         Button favorite = outlineButton(repository.isFavorite(recipe.id) ? "★ 已收藏" : "☆ 收藏");
+        favorite.setContentDescription(repository.isFavorite(recipe.id) ? "取消收藏" : "收藏");
         favorite.setOnClickListener(v -> {
             repository.toggleFavorite(recipe.id);
-            showRecipeDetail(repository.findById(recipe.id));
+            boolean nowFavorite = repository.isFavorite(recipe.id);
+            favorite.setText(nowFavorite ? "★ 已收藏" : "☆ 收藏");
+            favorite.setContentDescription(nowFavorite ? "取消收藏" : "收藏");
+            MotionSpec.favorite(favorite);
         });
         actions.addView(favorite, weighted());
         if (recipe.custom) {
@@ -1475,6 +1479,7 @@ public class MainActivity extends Activity {
         button.setTypeface(Typeface.create("sans", selected ? Typeface.BOLD : Typeface.NORMAL));
         button.setTextColor(selected ? WHITE : JADE_DARK);
         button.setBackground(ripple(selected ? JADE : WHITE, 14, selected ? Color.TRANSPARENT : LINE));
+        button.setContentDescription((selected ? "已选择：" : "选择：") + button.getText());
     }
 
     private LinearLayout horizontalChipRow() {
