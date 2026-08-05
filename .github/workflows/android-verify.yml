@@ -39,6 +39,13 @@ jobs:
           TINGS_TABLE_KEYSTORE: ${{ runner.temp }}/tings-table-release.p12
         run: ./gradlew --no-daemon testDebugUnitTest lintDebug lintRelease assembleDebug assembleRelease
 
+      - name: Verify signed release APK
+        if: ${{ env.TINGS_TABLE_KEYSTORE_B64 != '' }}
+        run: |
+          apksigner_path="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          test -n "$apksigner_path"
+          "$apksigner_path" verify --verbose --print-certs app/build/outputs/apk/release/app-release.apk
+
       - name: Upload APK outputs
         if: always()
         uses: actions/upload-artifact@v4
