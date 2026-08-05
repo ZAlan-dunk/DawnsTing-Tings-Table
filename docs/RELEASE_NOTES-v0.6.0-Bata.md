@@ -11,4 +11,6 @@
 
 ## Verification
 
-- Pending final build, APK metadata, permission, and signature checks.
+- GitHub Actions run `31004467704` passed unit tests, Debug/Release lint, and Debug/Release assembly.
+- Manifest permission review found no requested permissions, including no `INTERNET` permission.
+- Release signing and final signed-APK metadata checks remain pending until the existing compatible signing key is available.

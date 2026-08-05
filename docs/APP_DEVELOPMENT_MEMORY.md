@@ -22,6 +22,6 @@
 
 - Changes: Added compact recipe search/filter panels, semantic home icons, an original sheep-chef hero, directional navigation motion, and recipe-list position restoration.
 - Decisions and new preferences: Keep the Java/View stack; use local vector assets rather than adding a UI framework.
-- Verification: 7 browse-state tests passed; 24 XML resources parsed; drawable references, manifest permissions, version identity, diff checks, and independent static review passed. Android CI pending after push because no local SDK is installed.
-- Commit, tag, and Release: Pending.
+- Verification: 7 browse-state tests passed; 24 XML resources parsed; drawable references, manifest permissions, version identity, diff checks, and independent static review passed. GitHub Actions run `31004467704` also passed unit tests, Debug/Release lint, and Debug/Release assembly.
+- Commit, tag, and Release: Feature commit `f93a7fa` and CI fix `9817354` are pushed to `main`; tag and Release remain pending.
 - Known gaps: Physical-device visual/TalkBack checks and release signing remain unavailable in the current environment.
