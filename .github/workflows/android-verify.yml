@@ -12,6 +12,11 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    env:
+      TINGS_TABLE_KEYSTORE_B64: ${{ secrets.TINGS_TABLE_KEYSTORE_B64 }}
+      TINGS_TABLE_STORE_PASSWORD: ${{ secrets.TINGS_TABLE_STORE_PASSWORD }}
+      TINGS_TABLE_KEY_ALIAS: ${{ secrets.TINGS_TABLE_KEY_ALIAS }}
+      TINGS_TABLE_KEY_PASSWORD: ${{ secrets.TINGS_TABLE_KEY_PASSWORD }}
 
     steps:
       - uses: actions/checkout@v4
@@ -23,13 +28,23 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
+      - name: Prepare release signing
+        if: ${{ env.TINGS_TABLE_KEYSTORE_B64 != '' }}
+        run: |
+          printf '%s' "$TINGS_TABLE_KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/tings-table-release.p12"
+          chmod 600 "$RUNNER_TEMP/tings-table-release.p12"
+
       - name: Test, lint, and assemble
+        env:
+          TINGS_TABLE_KEYSTORE: ${{ runner.temp }}/tings-table-release.p12
         run: ./gradlew --no-daemon testDebugUnitTest lintDebug lintRelease assembleDebug assembleRelease
 
       - name: Upload APK outputs
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: LazySheepChef-v0.6.0-Bata-debug
-          path: app/build/outputs/apk/debug/*.apk
+          name: LazySheepChef-v0.6.0-Bata-apks
+          path: |
+            app/build/outputs/apk/debug/*.apk
+            app/build/outputs/apk/release/*.apk
           if-no-files-found: warn
