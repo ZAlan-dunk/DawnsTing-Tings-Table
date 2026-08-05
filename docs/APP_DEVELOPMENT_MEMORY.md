@@ -23,5 +23,5 @@
 - Changes: Added compact recipe search/filter panels, semantic home icons, an original sheep-chef hero, directional navigation motion, and recipe-list position restoration.
 - Decisions and new preferences: Keep the Java/View stack; use local vector assets rather than adding a UI framework.
 - Verification: 7 browse-state tests passed; 24 XML resources parsed; drawable references, manifest permissions, version identity, diff checks, and independent static review passed. GitHub Actions run `31004467704` also passed unit tests, Debug/Release lint, and Debug/Release assembly.
-- Commit, tag, and Release: Feature commit `f93a7fa` and CI fix `9817354` are pushed to `main`; tag and Release remain pending.
-- Known gaps: Physical-device visual/TalkBack checks and release signing remain unavailable in the current environment.
+- Commit, tag, and Release: Feature commit `f93a7fa`, CI signing commit `5fcc29f`, and certificate verification commit `2e7f9e8` are pushed to `main`; `v0.6.0-beta` is published as a GitHub Pre-release.
+- Known gaps: Physical-device visual/TalkBack checks remain unavailable in the current environment. The new release signing key is stored only in GitHub encrypted Secrets.

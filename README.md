@@ -4,8 +4,8 @@
 
 ## 下载 Android 测试版
 
-- 最新发布版本：**v0.5 测试版**
-- 当前源码版本：**v0.6.0-Bata（待发布）**
+- 最新发布版本：**v0.6.0-Bata 测试版**
+- 当前源码版本：**v0.6.0-Bata**
 - 系统要求：Android 8.0（API 26）及以上
 - 下载地址：[前往 GitHub Releases](https://github.com/ZAlan-dunk/DawnsTing-Tings-Table/releases)
 
