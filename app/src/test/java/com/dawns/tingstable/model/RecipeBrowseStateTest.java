@@ -51,4 +51,59 @@ public class RecipeBrowseStateTest {
         assertEquals("豆腐", state.getQuery());
         assertTrue(state.hasFilters());
     }
+
+    @Test
+    public void scopeLabelIsReadableForEveryScope() {
+        RecipeBrowseState state = new RecipeBrowseState();
+        assertEquals("全部菜谱", state.scopeLabel());
+
+        state.setScope(RecipeBrowseState.SCOPE_FAVORITES);
+        assertEquals("我的收藏", state.scopeLabel());
+
+        state.setScope(RecipeBrowseState.SCOPE_CUSTOM);
+        assertEquals("自定义", state.scopeLabel());
+    }
+
+    @Test
+    public void compactSummaryOnlyIncludesActiveCriteria() {
+        RecipeBrowseState state = new RecipeBrowseState();
+        assertEquals("全部菜谱", state.compactSummary());
+
+        state.setScope(RecipeBrowseState.SCOPE_FAVORITES);
+        state.setQuery("  豆腐  ");
+        state.setCuisine(RecipeCuisines.SICHUAN);
+        state.setCookingMethod(RecipeCategories.STIR_FRY);
+
+        assertEquals("我的收藏 · 搜索“豆腐” · 川菜 · 炒菜", state.compactSummary());
+    }
+
+    @Test
+    public void activeFilterCountExcludesQueryWhichHasItsOwnIndicator() {
+        RecipeBrowseState state = new RecipeBrowseState();
+        state.setQuery("豆腐");
+
+        assertEquals(0, state.activeFilterCount());
+        assertTrue(state.hasActiveQuery());
+
+        state.setScope(RecipeBrowseState.SCOPE_CUSTOM);
+        state.setCuisine(RecipeCuisines.CANTONESE);
+        state.setCookingMethod(RecipeCategories.STEAM);
+
+        assertEquals(3, state.activeFilterCount());
+    }
+
+    @Test
+    public void resetKeepsScopeInCompactSummaryAndClearsFilterIndicators() {
+        RecipeBrowseState state = new RecipeBrowseState();
+        state.setScope(RecipeBrowseState.SCOPE_CUSTOM);
+        state.setQuery("鱼");
+        state.setCuisine(RecipeCuisines.CANTONESE);
+        state.setCookingMethod(RecipeCategories.STEAM);
+
+        state.resetFilters();
+
+        assertEquals("自定义", state.compactSummary());
+        assertEquals(1, state.activeFilterCount());
+        assertFalse(state.hasActiveQuery());
+    }
 }

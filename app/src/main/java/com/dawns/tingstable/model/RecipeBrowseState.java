@@ -28,6 +28,12 @@ public final class RecipeBrowseState {
         return scope;
     }
 
+    public String scopeLabel() {
+        if (SCOPE_FAVORITES.equals(scope)) return "我的收藏";
+        if (SCOPE_CUSTOM.equals(scope)) return "自定义";
+        return "全部菜谱";
+    }
+
     public void setScope(String scope) {
         if (SCOPE_FAVORITES.equals(scope) || SCOPE_CUSTOM.equals(scope)) {
             this.scope = scope;
@@ -72,8 +78,27 @@ public final class RecipeBrowseState {
         return cuisineLabel + " · " + methodLabel;
     }
 
+    public String compactSummary() {
+        StringBuilder summary = new StringBuilder(scopeLabel());
+        if (hasActiveQuery()) summary.append(" · 搜索“").append(query).append("”");
+        if (!RecipeCuisines.ALL.equals(cuisine)) summary.append(" · ").append(cuisine);
+        if (!RecipeCategories.ALL.equals(cookingMethod)) summary.append(" · ").append(cookingMethod);
+        return summary.toString();
+    }
+
+    public int activeFilterCount() {
+        int count = SCOPE_ALL.equals(scope) ? 0 : 1;
+        if (!RecipeCuisines.ALL.equals(cuisine)) count++;
+        if (!RecipeCategories.ALL.equals(cookingMethod)) count++;
+        return count;
+    }
+
+    public boolean hasActiveQuery() {
+        return !query.isEmpty();
+    }
+
     public boolean hasFilters() {
-        return !query.isEmpty()
+        return hasActiveQuery()
                 || !RecipeCuisines.ALL.equals(cuisine)
                 || !RecipeCategories.ALL.equals(cookingMethod);
     }

@@ -3,27 +3,29 @@ package com.dawns.tingstable;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.Dialog;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.RippleDrawable;
 import android.os.Build;
 import android.os.Bundle;
-import android.text.Editable;
 import android.text.InputType;
-import android.text.TextWatcher;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
-import android.view.inputmethod.EditorInfo;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.HorizontalScrollView;
+import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -86,24 +88,23 @@ public class MainActivity extends Activity {
     private LinearLayout bottomNav;
     private FrameLayout content;
     private TextView titleView;
-    private Button backButton;
+    private ImageButton backButton;
     private final Button[] navButtons = new Button[5];
     private Runnable backAction;
+    private MotionSpec.MotionHandle pageMotion;
 
     private String currentPage = "HOME";
     private String currentRecipeId = "";
     private final RecipeBrowseState recipeState = new RecipeBrowseState();
-    private EditText recipeSearch;
     private TextView recipeSummary;
-    private LinearLayout recipeScopeRow;
-    private LinearLayout recipeDimensionRow;
-    private LinearLayout recipeOptionRow;
-    private Button recipeReset;
+    private ImageButton recipeSearchAction;
+    private ImageButton recipeFilterAction;
     private RecyclerView recipeList;
     private FrameLayout recipeResults;
     private View recipeEmpty;
     private RecipeListAdapter recipeListAdapter;
-    private boolean syncingRecipeSearch;
+    private int recipeScrollPosition;
+    private int recipeScrollOffset;
     private String pantryFilter = "ALL";
     private String detailReturnPage = "RECIPES";
 
@@ -169,15 +170,16 @@ public class MainActivity extends Activity {
         topBar.setBackgroundColor(JADE_DARK);
         topBar.setMinimumHeight(dp(62));
 
-        backButton = textButton("‹", true);
-        backButton.setTextSize(27);
-        backButton.setContentDescription("返回");
+        backButton = iconButton(R.drawable.ic_action_chevron_right, "返回", false);
+        backButton.setRotation(180f);
+        backButton.setImageTintList(ColorStateList.valueOf(WHITE));
         backButton.setVisibility(View.GONE);
         topBar.addView(backButton, new LinearLayout.LayoutParams(dp(48), dp(48)));
 
         titleView = text("懒羊羊当大厨～", 20, WHITE, true);
         titleView.setGravity(Gravity.CENTER_VERTICAL);
-        titleView.setMaxLines(1);
+        titleView.setMaxLines(2);
+        ViewCompat.setAccessibilityHeading(titleView, true);
         topBar.addView(titleView, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
         shell.addView(topBar, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
@@ -234,6 +236,9 @@ public class MainActivity extends Activity {
     }
 
     private void setPage(String page, String title, Runnable onBack, View view, boolean showNavigation) {
+        if (pageMotion != null && pageMotion.isRunning()) pageMotion.cancel();
+        View outgoing = content.getChildCount() == 0 ? null : content.getChildAt(content.getChildCount() - 1);
+        String previousPage = currentPage;
         currentPage = page;
         titleView.setText(title);
         backAction = onBack;
@@ -241,13 +246,35 @@ public class MainActivity extends Activity {
         backButton.setOnClickListener(v -> { if (backAction != null) backAction.run(); });
         bottomNav.setVisibility(showNavigation ? View.VISIBLE : View.GONE);
         setNavSelection(showNavigation ? navIndex(page) : -1);
-        content.removeAllViews();
         int screenWidthDp = getResources().getConfiguration().screenWidthDp;
         int width = screenWidthDp >= 600 ? dp(Math.min(820, Math.max(360, screenWidthDp - 40))) : ViewGroup.LayoutParams.MATCH_PARENT;
         FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(width, ViewGroup.LayoutParams.MATCH_PARENT, Gravity.CENTER_HORIZONTAL);
         content.addView(view, params);
-        MotionSpec.enter(view, dp(8));
+        if (outgoing == null || outgoing == view) {
+            MotionSpec.enter(view, dp(8));
+        } else {
+            Runnable removeOutgoing = () -> {
+                if (outgoing.getParent() == content) content.removeView(outgoing);
+            };
+            int previousIndex = navIndex(previousPage);
+            int nextIndex = navIndex(page);
+            if (previousIndex >= 0 && nextIndex >= 0) {
+                pageMotion = MotionSpec.siblingTransition(outgoing, view,
+                        nextIndex >= previousIndex, dp(14), removeOutgoing);
+            } else if (isBackTransition(previousPage, page)) {
+                pageMotion = MotionSpec.backTransition(outgoing, view, dp(20), removeOutgoing);
+            } else {
+                pageMotion = MotionSpec.forwardTransition(outgoing, view, dp(20), removeOutgoing);
+            }
+        }
         applySafeInsets();
+    }
+
+    private boolean isBackTransition(String from, String to) {
+        if ("DETAIL".equals(from)) return !"FORM".equals(to);
+        if ("FORM".equals(from)) return true;
+        if ("PANTRY_MATCHES".equals(from)) return "PANTRY".equals(to);
+        return "SPECIAL_DETAIL".equals(from) && "SPECIALS".equals(to);
     }
 
     private void setNavSelection(int selected) {
@@ -255,9 +282,13 @@ public class MainActivity extends Activity {
             Button button = navButtons[i];
             if (button == null) continue;
             boolean active = i == selected;
+            boolean changedToActive = active && !button.isSelected();
             button.setTextColor(active ? JADE_DARK : MUTED);
-            button.setCompoundDrawableTintList(ColorStateList.valueOf(active ? JADE_DARK : MUTED));
+            button.setCompoundDrawableTintList(null);
             button.setBackground(ripple(active ? JADE_LIGHT : Color.TRANSPARENT, 13, Color.TRANSPARENT));
+            button.setSelected(active);
+            ViewCompat.setStateDescription(button, active ? "当前页面" : "未选择");
+            if (changedToActive) MotionSpec.selectionFeedback(button);
         }
     }
 
@@ -272,18 +303,6 @@ public class MainActivity extends Activity {
 
     private void showHome() {
         LinearLayout body = pageBody();
-        LinearLayout hero = vertical();
-        hero.setPadding(dp(22), dp(24), dp(22), dp(22));
-        hero.setBackground(roundRect(JADE, 24, Color.TRANSPARENT));
-        TextView eyebrow = text("今日厨房", 12, Color.rgb(227, 208, 163), true);
-        eyebrow.setLetterSpacing(0.12f);
-        hero.addView(eyebrow);
-        TextView brand = text("懒羊羊当大厨～", 29, WHITE, true);
-        brand.setPadding(0, dp(10), 0, dp(5));
-        hero.addView(brand);
-        hero.addView(text("漂亮勒女明星～", 17, Color.rgb(246, 237, 214), false));
-        body.addView(hero, spaced(16));
-
         List<PantryItem> pantry = pantryRepository.getItems();
         int available = 0;
         int low = 0;
@@ -295,6 +314,51 @@ public class MainActivity extends Activity {
         int canCook = 0;
         for (RecipeMatcher.Match match : matches) if (match.canCook()) canCook++;
 
+        LinearLayout hero = new LinearLayout(this);
+        hero.setGravity(Gravity.CENTER_VERTICAL);
+        hero.setPadding(dp(20), dp(17), dp(10), dp(16));
+        hero.setMinimumHeight(dp(152));
+        hero.setBackground(ripple(JADE, 22, Color.TRANSPARENT));
+
+        LinearLayout heroCopy = vertical();
+        TextView eyebrow = text("今日厨房", 12, Color.rgb(238, 211, 155), true);
+        eyebrow.setLetterSpacing(0.08f);
+        heroCopy.addView(eyebrow);
+        TextView brand = text("懒羊羊当大厨～", 27, WHITE, true);
+        brand.setPadding(0, dp(8), 0, dp(6));
+        heroCopy.addView(brand);
+        String kitchenState = available == 0
+                ? "菜篮还是空的，先添几样喜欢的食材"
+                : "菜篮有 " + available + " 种 · 今晚能做 " + canCook + " 道";
+        heroCopy.addView(text(kitchenState, 13, Color.rgb(246, 237, 214), false));
+        TextView prompt = text(matches.isEmpty() ? "去整理菜篮" : "看看今晚推荐", 12, Color.rgb(238, 211, 155), true);
+        prompt.setPadding(0, dp(10), 0, 0);
+        heroCopy.addView(prompt);
+        hero.addView(heroCopy, weighted());
+
+        ImageView mascot = new ImageView(this);
+        mascot.setImageResource(R.drawable.hero_lazy_sheep_chef);
+        mascot.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        mascot.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        int screenWidthDp = getResources().getConfiguration().screenWidthDp;
+        float fontScale = getResources().getConfiguration().fontScale;
+        boolean hideMascot = screenWidthDp < 360 || fontScale >= 1.35f;
+        if (!hideMascot) {
+            int mascotWidth = screenWidthDp < 400 ? 92 : 108;
+            hero.addView(mascot, new LinearLayout.LayoutParams(dp(mascotWidth), dp(118)));
+        }
+
+        Recipe heroRecipe = matches.isEmpty() ? null : matches.get(0).recipe;
+        hero.setContentDescription(heroRecipe == null
+                ? "今日厨房，" + kitchenState + "，打开菜篮"
+                : "今日厨房，" + kitchenState + "，查看推荐菜谱" + heroRecipe.name);
+        hero.setOnClickListener(v -> {
+            if (!hideMascot) MotionSpec.iconNudge(mascot, dp(4));
+            if (heroRecipe == null) showPantry(); else openRecipeDetail(heroRecipe, "HOME");
+        });
+        MotionSpec.attachPress(hero);
+        body.addView(hero, spaced(16));
+
         LinearLayout stats = new LinearLayout(this);
         stats.setOrientation(LinearLayout.HORIZONTAL);
         stats.addView(statCard("菜篮", available + " 种", available > 0 ? "尚有食材" : "等你添菜"), weighted());
@@ -305,23 +369,31 @@ public class MainActivity extends Activity {
         body.addView(stats, spaced(22));
 
         body.addView(sectionTitle("今晚做什么"));
-        body.addView(homeAction("翻菜谱", "按菜系与做法寻找一餐", "菜谱", () -> showRecipes(RecipeBrowseState.SCOPE_ALL)), spaced(10));
-        body.addView(homeAction("打开菜篮", "看看余量与本周新购", "菜篮", this::showPantry), spaced(10));
-        body.addView(homeAction("就用现有食材", "匹配现在可以做的菜", "开做", this::showPantryMatches), spaced(10));
-        body.addView(homeAction("特典菜谱", "两席私藏，静候入席", "特典", this::showSpecials), spaced(16));
+        body.addView(homeAction("翻菜谱", "按菜系与做法寻找一餐", R.drawable.ic_home_recipe,
+                CINNABAR_LIGHT, () -> showRecipes(RecipeBrowseState.SCOPE_ALL)), spaced(10));
+        body.addView(homeAction("打开菜篮", "看看余量与本周新购", R.drawable.ic_home_pantry,
+                JADE_LIGHT, this::showPantry), spaced(10));
+        body.addView(homeAction("就用现有食材", "匹配现在可以做的菜", R.drawable.ic_home_cook_now,
+                GOLD_LIGHT, this::showPantryMatches), spaced(10));
+        body.addView(homeAction("特典菜谱", "两席私藏，静候入席", R.drawable.ic_home_special,
+                Color.rgb(245, 232, 237), this::showSpecials), spaced(16));
 
         LinearLayout quick = new LinearLayout(this);
         quick.setOrientation(LinearLayout.HORIZONTAL);
         Button favorites = outlineButton("收藏 · " + repository.getFavorites().size());
+        favorites.setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_action_favorite, 0, 0, 0);
+        favorites.setCompoundDrawablePadding(dp(6));
         favorites.setOnClickListener(v -> showRecipes(RecipeBrowseState.SCOPE_FAVORITES));
         quick.addView(favorites, weighted());
         addGap(quick, 10);
         Button shopping = outlineButton("清单 · " + repository.getShoppingItems().size());
+        shopping.setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_action_shopping, 0, 0, 0);
+        shopping.setCompoundDrawablePadding(dp(6));
         shopping.setOnClickListener(v -> showShoppingList());
         quick.addView(shopping, weighted());
         body.addView(quick, spaced(12));
 
-        setPage("HOME", "懒羊羊当大厨～", null, scroll(body), true);
+        setPage("HOME", "今日厨房", null, scroll(body), true);
     }
 
     private View statCard(String title, String value, String note) {
@@ -336,17 +408,20 @@ public class MainActivity extends Activity {
         return box;
     }
 
-    private View homeAction(String title, String description, String marker, Runnable action) {
+    private View homeAction(String title, String description, int iconRes, int iconSurface, Runnable action) {
         LinearLayout box = new LinearLayout(this);
         box.setGravity(Gravity.CENTER_VERTICAL);
         box.setPadding(dp(16), dp(15), dp(14), dp(15));
         box.setBackground(ripple(WHITE, 18, Color.TRANSPARENT));
         box.setOnClickListener(v -> action.run());
         MotionSpec.attachPress(box);
-        TextView mark = text(marker, 12, WHITE, true);
-        mark.setGravity(Gravity.CENTER);
-        mark.setBackground(roundRect(JADE, 13, Color.TRANSPARENT));
-        box.addView(mark, new LinearLayout.LayoutParams(dp(48), dp(48)));
+        FrameLayout iconFrame = new FrameLayout(this);
+        iconFrame.setBackground(roundRect(iconSurface, 14, Color.TRANSPARENT));
+        ImageView icon = new ImageView(this);
+        icon.setImageResource(iconRes);
+        icon.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        iconFrame.addView(icon, new FrameLayout.LayoutParams(dp(24), dp(24), Gravity.CENTER));
+        box.addView(iconFrame, new LinearLayout.LayoutParams(dp(48), dp(48)));
         LinearLayout words = vertical();
         words.setPadding(dp(14), 0, dp(8), 0);
         words.addView(text(title, 17, INK, true));
@@ -354,56 +429,48 @@ public class MainActivity extends Activity {
         desc.setPadding(0, dp(3), 0, 0);
         words.addView(desc);
         box.addView(words, weighted());
-        box.addView(text("›", 25, GOLD, false));
+        ImageView arrow = new ImageView(this);
+        arrow.setImageResource(R.drawable.ic_action_chevron_right);
+        arrow.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        box.addView(arrow, new LinearLayout.LayoutParams(dp(24), dp(24)));
+        box.setContentDescription(title + "，" + description);
         return box;
     }
 
     private void showRecipes(String scope) {
+        boolean scopeChanged = !Objects.equals(scope, recipeState.getScope());
+        if (scopeChanged) {
+            recipeScrollPosition = 0;
+            recipeScrollOffset = 0;
+        }
         recipeState.setScope(scope);
         LinearLayout page = vertical();
-        LinearLayout header = vertical();
-        header.setPadding(dp(16), dp(14), dp(16), dp(8));
+        LinearLayout header = new LinearLayout(this);
+        header.setGravity(Gravity.CENTER_VERTICAL);
+        header.setPadding(dp(16), dp(10), dp(10), dp(8));
 
-        LinearLayout heading = new LinearLayout(this);
-        heading.setGravity(Gravity.CENTER_VERTICAL);
-        heading.addView(text("家常菜谱", 24, INK, true), weighted());
-        Button add = primaryButton("＋ 自定义");
-        add.setOnClickListener(v -> showRecipeForm(null));
-        heading.addView(add);
-        header.addView(heading, spaced(10));
+        recipeSummary = text("", 13, MUTED, true);
+        recipeSummary.setMaxLines(2);
+        recipeSummary.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
+        header.addView(recipeSummary, weighted());
 
-        recipeSearch = input("搜索菜名、食材、菜系或口味");
-        recipeSearch.setSingleLine(true);
-        recipeSearch.setImeOptions(EditorInfo.IME_ACTION_SEARCH);
-        recipeSearch.setText(recipeState.getQuery());
-        recipeSearch.setSelection(recipeSearch.length());
-        header.addView(recipeSearch, spaced(10));
-
-        recipeScopeRow = horizontalChipRow();
-        header.addView(recipeScopeRow, spaced(8));
-
-        recipeDimensionRow = horizontalChipRow();
-        header.addView(recipeDimensionRow, spaced(8));
-
-        recipeOptionRow = horizontalChipRow();
-        header.addView(horizontalScroll(recipeOptionRow), spaced(6));
-
-        LinearLayout summaryRow = new LinearLayout(this);
-        summaryRow.setGravity(Gravity.CENTER_VERTICAL);
-        recipeSummary = text("", 12, MUTED, true);
-        summaryRow.addView(recipeSummary, weighted());
-        recipeReset = textButton("重置筛选", true);
-        recipeReset.setTextColor(CINNABAR);
-        recipeReset.setContentDescription("清除搜索、菜系和做法筛选");
-        recipeReset.setOnClickListener(v -> {
-            recipeState.resetFilters();
-            syncingRecipeSearch = true;
-            recipeSearch.setText("");
-            syncingRecipeSearch = false;
-            renderRecipeResults(true);
+        recipeSearchAction = iconButton(R.drawable.ic_action_search, "搜索菜谱", false);
+        recipeSearchAction.setOnClickListener(v -> {
+            MotionSpec.iconNudge(v, dp(3));
+            showRecipeSearchSheet();
         });
-        summaryRow.addView(recipeReset);
-        header.addView(summaryRow);
+        header.addView(recipeSearchAction, new LinearLayout.LayoutParams(dp(48), dp(48)));
+
+        recipeFilterAction = iconButton(R.drawable.ic_action_filter, "筛选菜谱", false);
+        recipeFilterAction.setOnClickListener(v -> {
+            MotionSpec.selectionFeedback(v);
+            showRecipeFilterSheet();
+        });
+        header.addView(recipeFilterAction, new LinearLayout.LayoutParams(dp(48), dp(48)));
+
+        ImageButton add = iconButton(R.drawable.ic_action_add, "新增自定义菜谱", false);
+        add.setOnClickListener(v -> showRecipeForm(null));
+        header.addView(add, new LinearLayout.LayoutParams(dp(48), dp(48)));
         page.addView(header, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
@@ -431,7 +498,12 @@ public class MainActivity extends Activity {
                 ViewGroup.LayoutParams.MATCH_PARENT
         ));
 
-        recipeEmpty = emptyState("没有找到合适的菜谱", "可重置筛选，或换一个搜索词。");
+        recipeEmpty = emptyState("没有找到合适的菜谱", "点击这里修改搜索或筛选条件。");
+        recipeEmpty.setContentDescription("没有找到合适的菜谱，修改搜索或筛选条件");
+        recipeEmpty.setOnClickListener(v -> {
+            if (recipeState.hasActiveQuery()) showRecipeSearchSheet(); else showRecipeFilterSheet();
+        });
+        MotionSpec.attachPress(recipeEmpty);
         recipeEmpty.setVisibility(View.GONE);
         FrameLayout.LayoutParams emptyParams = new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
@@ -445,81 +517,190 @@ public class MainActivity extends Activity {
                 0,
                 1f
         ));
-
-        recipeSearch.addTextChangedListener(new SimpleWatcher() {
-            @Override public void afterTextChanged(Editable editable) {
-                if (syncingRecipeSearch) return;
-                recipeState.setQuery(editable.toString());
-                renderRecipeResults(false);
-            }
-        });
         setPage("RECIPES", "菜谱", null, page, true);
         renderRecipeResults(false);
+        restoreRecipeScrollPosition();
     }
 
     private void renderRecipeResults(boolean animate) {
         if (recipeResults == null || recipeListAdapter == null) return;
         Runnable update = () -> {
-            renderRecipeControls();
             Set<String> favorites = repository.getFavorites();
             List<Recipe> filtered = RecipeFilters.filter(repository.getAllRecipes(), favorites, recipeState);
-            recipeSummary.setText(getString(R.string.recipe_count, filtered.size(), recipeState.summary()));
-            recipeReset.setVisibility(recipeState.hasFilters() ? View.VISIBLE : View.GONE);
+            recipeSummary.setText(filtered.size() + " 道 · " + recipeState.compactSummary());
+            boolean queryActive = recipeState.hasActiveQuery();
+            boolean facetsActive = recipeState.activeFilterCount() > 0;
+            styleIconButton(recipeSearchAction, queryActive);
+            styleIconButton(recipeFilterAction, facetsActive);
+            recipeSearchAction.setContentDescription(queryActive
+                    ? "搜索菜谱，当前关键词：" + recipeState.getQuery()
+                    : "搜索菜谱");
+            recipeSearchAction.setTooltipText(recipeSearchAction.getContentDescription());
+            ViewCompat.setStateDescription(recipeSearchAction,
+                    queryActive ? "已输入搜索词" : "无搜索词");
+            recipeFilterAction.setContentDescription(facetsActive
+                    ? "筛选菜谱，已选择 " + recipeState.activeFilterCount() + " 项条件"
+                    : "筛选菜谱");
+            recipeFilterAction.setTooltipText(recipeFilterAction.getContentDescription());
+            ViewCompat.setStateDescription(recipeFilterAction,
+                    facetsActive ? "有筛选条件" : "无筛选条件");
             recipeListAdapter.submitRecipes(filtered, favorites);
             recipeList.setVisibility(filtered.isEmpty() ? View.GONE : View.VISIBLE);
             recipeEmpty.setVisibility(filtered.isEmpty() ? View.VISIBLE : View.GONE);
-            titleView.setContentDescription(getString(R.string.recipe_count, filtered.size(), recipeState.summary()));
         };
         if (animate) MotionSpec.crossfade(recipeResults, update); else update.run();
     }
 
-    private void renderRecipeControls() {
-        recipeScopeRow.removeAllViews();
-        addRecipeSegment(recipeScopeRow, "全部菜谱",
-                RecipeBrowseState.SCOPE_ALL.equals(recipeState.getScope()),
-                () -> { recipeState.setScope(RecipeBrowseState.SCOPE_ALL); renderRecipeResults(true); });
-        addRecipeSegment(recipeScopeRow, "我的收藏",
-                RecipeBrowseState.SCOPE_FAVORITES.equals(recipeState.getScope()),
-                () -> { recipeState.setScope(RecipeBrowseState.SCOPE_FAVORITES); renderRecipeResults(true); });
-        addRecipeSegment(recipeScopeRow, "自定义",
-                RecipeBrowseState.SCOPE_CUSTOM.equals(recipeState.getScope()),
-                () -> { recipeState.setScope(RecipeBrowseState.SCOPE_CUSTOM); renderRecipeResults(true); });
+    private void showRecipeSearchSheet() {
+        LinearLayout body = vertical();
+        EditText search = input("搜索菜名、食材、菜系或口味");
+        search.setSingleLine(true);
+        search.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH);
+        search.setText(recipeState.getQuery());
+        search.setSelection(search.length());
+        body.addView(search, spaced(10));
+        body.addView(text("搜索会匹配菜名、口味、菜系、做法和食材。", 12, MUTED, false));
 
-        recipeDimensionRow.removeAllViews();
-        addRecipeSegment(recipeDimensionRow, "按菜系",
-                RecipeBrowseState.DIMENSION_CUISINE.equals(recipeState.getDimension()),
-                () -> { recipeState.setDimension(RecipeBrowseState.DIMENSION_CUISINE); renderRecipeControls(); });
-        addRecipeSegment(recipeDimensionRow, "按做法",
-                RecipeBrowseState.DIMENSION_METHOD.equals(recipeState.getDimension()),
-                () -> { recipeState.setDimension(RecipeBrowseState.DIMENSION_METHOD); renderRecipeControls(); });
-
-        recipeOptionRow.removeAllViews();
-        if (RecipeBrowseState.DIMENSION_CUISINE.equals(recipeState.getDimension())) {
-            for (String cuisine : RecipeCuisines.all()) {
-                recipeOptionRow.addView(filterChip(cuisine, cuisine.equals(recipeState.getCuisine()), () -> {
-                    recipeState.setCuisine(cuisine);
+        Dialog dialog = showBottomSheet("搜索菜谱", body, false,
+                "清除", () -> {
+                    recipeState.setQuery("");
+                    resetRecipeScrollToTop();
                     renderRecipeResults(true);
-                }));
-            }
-        } else {
-            for (String method : RecipeCategories.all()) {
-                String label = RecipeCategories.ALL.equals(method) ? "全部做法" : method;
-                recipeOptionRow.addView(filterChip(label, method.equals(recipeState.getCookingMethod()), () -> {
-                    recipeState.setCookingMethod(method);
+                },
+                "查看结果", () -> {
+                    recipeState.setQuery(search.getText().toString());
+                    resetRecipeScrollToTop();
                     renderRecipeResults(true);
-                }));
-            }
+                });
+        search.setOnEditorActionListener((view, actionId, event) -> {
+            if (actionId != android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH) return false;
+            recipeState.setQuery(search.getText().toString());
+            resetRecipeScrollToTop();
+            renderRecipeResults(true);
+            dialog.dismiss();
+            return true;
+        });
+        search.requestFocus();
+        Window window = dialog.getWindow();
+        if (window != null) {
+            window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
+                    | WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
         }
     }
 
-    private void addRecipeSegment(LinearLayout row, String label, boolean selected, Runnable action) {
-        Button button = textButton(label, selected);
-        button.setTextSize(12);
-        button.setOnClickListener(v -> action.run());
-        styleFilterChip(button, selected);
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, dp(48), 1f);
-        if (row.getChildCount() > 0) params.leftMargin = dp(7);
-        row.addView(button, params);
+    private void showRecipeFilterSheet() {
+        String[] scope = { recipeState.scopeLabel() };
+        String[] cuisine = { recipeState.getCuisine() };
+        String[] method = { RecipeCategories.ALL.equals(recipeState.getCookingMethod())
+                ? "全部做法" : recipeState.getCookingMethod() };
+
+        LinearLayout body = vertical();
+        body.addView(sheetLabel("菜谱范围"));
+        body.addView(choiceRow(new String[] { "全部菜谱", "我的收藏", "自定义" }, scope), spaced(14));
+        body.addView(sheetLabel("菜系"));
+        body.addView(choiceRow(RecipeCuisines.all().toArray(new String[0]), cuisine), spaced(14));
+        body.addView(sheetLabel("烹饪方式"));
+        List<String> methodLabels = new ArrayList<>();
+        for (String value : RecipeCategories.all()) {
+            methodLabels.add(RecipeCategories.ALL.equals(value) ? "全部做法" : value);
+        }
+        body.addView(choiceRow(methodLabels.toArray(new String[0]), method));
+
+        ScrollView scroll = scroll(body);
+        showBottomSheet("筛选菜谱", scroll, true,
+                "重置", () -> {
+                    recipeState.setScope(RecipeBrowseState.SCOPE_ALL);
+                    recipeState.setCuisine(RecipeCuisines.ALL);
+                    recipeState.setCookingMethod(RecipeCategories.ALL);
+                    resetRecipeScrollToTop();
+                    renderRecipeResults(true);
+                },
+                "应用", () -> {
+                    if ("我的收藏".equals(scope[0])) recipeState.setScope(RecipeBrowseState.SCOPE_FAVORITES);
+                    else if ("自定义".equals(scope[0])) recipeState.setScope(RecipeBrowseState.SCOPE_CUSTOM);
+                    else recipeState.setScope(RecipeBrowseState.SCOPE_ALL);
+                    recipeState.setCuisine(cuisine[0]);
+                    recipeState.setCookingMethod("全部做法".equals(method[0])
+                            ? RecipeCategories.ALL : method[0]);
+                    resetRecipeScrollToTop();
+                    renderRecipeResults(true);
+                });
+    }
+
+    private TextView sheetLabel(String value) {
+        TextView label = text(value, 13, INK, true);
+        label.setPadding(0, dp(4), 0, dp(7));
+        return label;
+    }
+
+    private Dialog showBottomSheet(String title, View sheetContent, boolean tall,
+                                   String secondaryLabel, Runnable secondaryAction,
+                                   String primaryLabel, Runnable primaryAction) {
+        Dialog dialog = new Dialog(this);
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        LinearLayout sheet = vertical();
+        sheet.setPadding(dp(18), dp(10), dp(18), dp(16));
+        sheet.setBackground(roundRect(WHITE, 22, Color.TRANSPARENT));
+        sheet.setElevation(dp(18));
+
+        LinearLayout heading = new LinearLayout(this);
+        heading.setGravity(Gravity.CENTER_VERTICAL);
+        TextView titleView = text(title, 20, INK, true);
+        ViewCompat.setAccessibilityHeading(titleView, true);
+        heading.addView(titleView, weighted());
+        ImageButton close = iconButton(R.drawable.ic_action_close, "关闭" + title, false);
+        close.setOnClickListener(v -> dialog.dismiss());
+        heading.addView(close, new LinearLayout.LayoutParams(dp(48), dp(48)));
+        sheet.addView(heading, spaced(8));
+
+        LinearLayout.LayoutParams contentParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                tall ? 0 : ViewGroup.LayoutParams.WRAP_CONTENT,
+                tall ? 1f : 0f);
+        sheet.addView(sheetContent, contentParams);
+
+        LinearLayout actions = new LinearLayout(this);
+        actions.setGravity(Gravity.CENTER_VERTICAL);
+        actions.setPadding(0, dp(12), 0, 0);
+        Button secondary = outlineButton(secondaryLabel);
+        secondary.setOnClickListener(v -> {
+            secondaryAction.run();
+            dialog.dismiss();
+        });
+        actions.addView(secondary, weighted());
+        addGap(actions, 10);
+        Button primary = primaryButton(primaryLabel);
+        primary.setOnClickListener(v -> {
+            primaryAction.run();
+            dialog.dismiss();
+        });
+        actions.addView(primary, weighted());
+        sheet.addView(actions);
+
+        dialog.setContentView(sheet);
+        dialog.setCanceledOnTouchOutside(true);
+        dialog.show();
+        Window window = dialog.getWindow();
+        if (window != null) {
+            window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            window.setGravity(Gravity.BOTTOM);
+            window.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+            WindowManager.LayoutParams attributes = window.getAttributes();
+            attributes.dimAmount = 0.32f;
+            window.setAttributes(attributes);
+            int screenWidthDp = getResources().getConfiguration().screenWidthDp;
+            int screenHeightDp = getResources().getConfiguration().screenHeightDp;
+            int width = screenWidthDp >= 600 ? dp(Math.min(620, screenWidthDp - 32))
+                    : ViewGroup.LayoutParams.MATCH_PARENT;
+            int height = tall ? dp(Math.min(620, Math.max(280, Math.round(screenHeightDp * 0.82f))))
+                    : ViewGroup.LayoutParams.WRAP_CONTENT;
+            window.setLayout(width, height);
+            int side = screenWidthDp >= 600 ? 0 : dp(8);
+            window.getDecorView().setPadding(side + systemLeftInset, 0,
+                    side + systemRightInset, Math.max(dp(8), systemBottomInset));
+        }
+        MotionSpec.bottomSheetEnter(sheet, dp(24));
+        return dialog;
     }
 
     private View recipeCard(Recipe recipe, boolean isFavorite) {
@@ -589,9 +770,36 @@ public class MainActivity extends Activity {
 
     private void openRecipeDetail(Recipe recipe, String returnPage) {
         if (recipe == null) return;
+        if ("RECIPES".equals(returnPage)) saveRecipeScrollPosition();
         currentRecipeId = recipe.id;
         detailReturnPage = returnPage;
         showRecipeDetail(recipe);
+    }
+
+    private void saveRecipeScrollPosition() {
+        if (recipeList == null || !(recipeList.getLayoutManager() instanceof LinearLayoutManager)) return;
+        LinearLayoutManager layout = (LinearLayoutManager) recipeList.getLayoutManager();
+        int position = layout.findFirstVisibleItemPosition();
+        if (position < 0) return;
+        View first = layout.findViewByPosition(position);
+        recipeScrollPosition = position;
+        recipeScrollOffset = first == null ? 0 : first.getTop() - recipeList.getPaddingTop();
+    }
+
+    private void restoreRecipeScrollPosition() {
+        if (recipeList == null || recipeListAdapter == null || recipeListAdapter.getItemCount() == 0) return;
+        int position = Math.min(recipeScrollPosition, recipeListAdapter.getItemCount() - 1);
+        recipeList.post(() -> {
+            if (recipeList == null || !(recipeList.getLayoutManager() instanceof LinearLayoutManager)) return;
+            ((LinearLayoutManager) recipeList.getLayoutManager())
+                    .scrollToPositionWithOffset(position, recipeScrollOffset);
+        });
+    }
+
+    private void resetRecipeScrollToTop() {
+        recipeScrollPosition = 0;
+        recipeScrollOffset = 0;
+        if (recipeList != null) recipeList.scrollToPosition(0);
     }
 
     private void showRecipeDetail(Recipe recipe) {
@@ -687,7 +895,8 @@ public class MainActivity extends Activity {
     }
 
     private void returnFromRecipeDetail() {
-        if ("PANTRY_MATCHES".equals(detailReturnPage)) showPantryMatches();
+        if ("HOME".equals(detailReturnPage)) showHome();
+        else if ("PANTRY_MATCHES".equals(detailReturnPage)) showPantryMatches();
         else if ("SPECIALS".equals(detailReturnPage)) showSpecials();
         else showRecipes(recipeState.getScope());
     }
@@ -1463,6 +1672,27 @@ public class MainActivity extends Activity {
         return button;
     }
 
+    private ImageButton iconButton(int iconRes, String description, boolean selected) {
+        ImageButton button = new ImageButton(this);
+        button.setImageResource(iconRes);
+        button.setScaleType(ImageView.ScaleType.CENTER);
+        button.setPadding(dp(12), dp(12), dp(12), dp(12));
+        button.setMinimumWidth(dp(48));
+        button.setMinimumHeight(dp(48));
+        button.setContentDescription(description);
+        button.setTooltipText(description);
+        styleIconButton(button, selected);
+        MotionSpec.attachPress(button);
+        return button;
+    }
+
+    private void styleIconButton(ImageButton button, boolean selected) {
+        if (button == null) return;
+        button.setImageTintList(ColorStateList.valueOf(selected ? JADE_DARK : MUTED));
+        button.setBackground(ripple(selected ? JADE_LIGHT : Color.TRANSPARENT, 14, Color.TRANSPARENT));
+        button.setSelected(selected);
+    }
+
     private Button filterChip(String label, boolean selected, Runnable action) {
         Button button = textButton(label, selected);
         button.setTextSize(12);
@@ -1679,11 +1909,6 @@ public class MainActivity extends Activity {
         }
     }
 
-    private abstract static class SimpleWatcher implements TextWatcher {
-        @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
-        @Override public void onTextChanged(CharSequence s, int start, int before, int count) { }
-    }
-
     private void restorePage(Bundle state) {
         recipeState.setQuery(state.getString("recipeQuery", ""));
         recipeState.setScope(state.getString("recipeScope", RecipeBrowseState.SCOPE_ALL));
@@ -1693,6 +1918,8 @@ public class MainActivity extends Activity {
         pantryFilter = state.getString("pantryFilter", "ALL");
         currentRecipeId = state.getString("recipeId", "");
         detailReturnPage = state.getString("detailReturnPage", "RECIPES");
+        recipeScrollPosition = state.getInt("recipeScrollPosition", 0);
+        recipeScrollOffset = state.getInt("recipeScrollOffset", 0);
         String page = state.getString("page", "HOME");
         if ("RECIPES".equals(page)) showRecipes(recipeState.getScope());
         else if ("PANTRY".equals(page)) showPantry();
@@ -1711,6 +1938,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
+        if ("RECIPES".equals(currentPage)) saveRecipeScrollPosition();
         outState.putString("page", currentPage);
         outState.putString("recipeId", currentRecipeId);
         outState.putString("recipeQuery", recipeState.getQuery());
@@ -1720,6 +1948,8 @@ public class MainActivity extends Activity {
         outState.putString("recipeDimension", recipeState.getDimension());
         outState.putString("pantryFilter", pantryFilter);
         outState.putString("detailReturnPage", detailReturnPage);
+        outState.putInt("recipeScrollPosition", recipeScrollPosition);
+        outState.putInt("recipeScrollOffset", recipeScrollOffset);
     }
 
     private void handleBack() {
