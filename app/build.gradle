@@ -16,8 +16,8 @@ android {
         applicationId 'com.dawns.tingstable'
         minSdk 26
         targetSdk 36
-        versionCode 8
-        versionName '0.6.1-Bata'
+        versionCode 9
+        versionName '0.6.2-Bata'
 
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
     }

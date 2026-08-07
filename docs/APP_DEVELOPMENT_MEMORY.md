@@ -40,3 +40,24 @@
 - Decision: Do not continue polishing the APK from the current dark Hero; obtain visual approval on the prototype first, then back-port the confirmed tokens and layout.
 - Verification: HTML parsed and inline JavaScript syntax checked. Screenshots and GUI automation were not run under the active safety policy.
 - Commit and release: Prototype commit pending; no APK release created for this draft.
+
+### 2026-08-08 Web prototype image pass
+
+- Changes: Replaced the flat vector Hero mascot with a user-provided raster image, locally upscaled to 2400x1350 and color-adjusted for the light and night skins.
+- Decision: Prefer the supplied character image over further flat redraws. Keep the asset in the Web prototype until visual approval and source-permission confirmation; do not package it in Android yet.
+- Verification: Asset dimensions, PNG decode, HTML references, and JavaScript syntax checked. Screenshots and GUI automation were not run under the active safety policy.
+- Commit and release: Pending visual approval; no APK release created for this pass.
+
+### 2026-08-08 Web prototype contrast pass
+
+- Changes: Darkened action-card borders, icon wells, selected navigation, skin control, and supporting text; fixed action-card titles inheriting the muted description color.
+- Decision: Increase control discoverability without returning to a multi-color or high-contrast visual system.
+- Verification: CSS token references, inline JavaScript syntax, and diff checks passed. Screenshots and GUI automation were not run under the active safety policy.
+- Commit and release: Pending visual approval; no APK release created for this pass.
+
+### 2026-08-08 v0.6.2-Bata
+
+- Changes: Back-ported the approved Web direction to native Android: pale top bar and Hero surface, explicit light/night raster Hero resources, restrained semantic tokens, two-column home actions, and clearer button/navigation contrast.
+- Decisions and new preferences: Prefer the supplied character image over flat redraws; select light/night artwork through the persistent in-app `ThemeMode`, not the system night resource qualifier. Preserve the Java/View stack, package identity, data keys, offline behavior, and continuous test signing route.
+- Verification: MainActivity Java parsing, 27 XML resources, image dimensions and decode, resource references, HTML/JavaScript, manifest permissions, version identity, diff checks, and light/night contrast checks passed locally. Android SDK/device checks remain delegated to GitHub Actions and authorized device testing.
+- Commit, tag, and Release: Pending final CI for `v0.6.2-Bata`.

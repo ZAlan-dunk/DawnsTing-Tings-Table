@@ -12,9 +12,12 @@
       --surface-soft: #edf2ee;
       --hero: #eaf0eb;
       --ink: #202a24;
-      --muted: #77827b;
-      --line: #dbe3dc;
-      --accent: #668172;
+      --muted: #68756d;
+      --line: #d1ddd4;
+      --control-line: #c2d0c6;
+      --control-soft: #e4ece6;
+      --control-ink: #50645a;
+      --accent: #607b6c;
       --accent-deep: #456051;
       --rose: #bd8b82;
       --gold: #ad9b66;
@@ -31,8 +34,11 @@
       --surface-soft: #26302a;
       --hero: #202a24;
       --ink: #edf2ed;
-      --muted: #aeb8b0;
+      --muted: #afbbb2;
       --line: #354139;
+      --control-line: #4d5f53;
+      --control-soft: #2d3a31;
+      --control-ink: #d3e1d6;
       --accent: #9eb8a6;
       --accent-deep: #d1e0d5;
       --rose: #d29b92;
@@ -94,29 +100,30 @@
 
     .hero {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) 250px;
+      grid-template-columns: minmax(0, .88fr) minmax(300px, 1.12fr);
       align-items: center;
-      min-height: 248px;
-      padding: 30px 34px;
+      min-height: 286px;
+      padding: 0;
       border: 1px solid var(--line);
       border-radius: var(--radius-lg);
-      background: var(--hero);
+      background: var(--surface);
       box-shadow: var(--shadow);
+      overflow: hidden;
     }
-    .hero-copy { max-width: 560px; }
+    .hero-copy { max-width: 560px; padding: 32px 34px; }
     .eyebrow { color: var(--accent); font-size: 12px; font-weight: 700; letter-spacing: .12em; }
     .signature { margin-top: 6px; color: var(--rose); font-size: 12px; font-weight: 700; }
     h1 { margin: 13px 0 9px; font-size: clamp(28px, 4vw, 44px); line-height: 1.08; letter-spacing: -.065em; }
     .hero p { max-width: 430px; margin: 0; color: var(--muted); }
     .hero-action { display: inline-flex; align-items: center; gap: 8px; margin-top: 24px; padding: 11px 16px; border: 0; border-radius: 999px; background: var(--accent); color: #fff; cursor: pointer; }
     .hero-action:hover, .hero-action:focus-visible { background: var(--accent-deep); }
-    .mascot { justify-self: end; width: 205px; color: var(--accent); }
-    .mascot .wool { fill: #fbfbf7; stroke: var(--accent); stroke-width: 2; }
-    .mascot .face { fill: #e8decb; stroke: var(--accent); stroke-width: 2; }
-    .mascot .apron { fill: #cbd9ce; stroke: var(--accent); stroke-width: 2; }
-    .mascot .hat { fill: #f4eddf; stroke: var(--accent); stroke-width: 2; }
-    .mascot .detail { fill: none; stroke: var(--accent-deep); stroke-width: 2.4; stroke-linecap: round; }
-    .mascot .blush { fill: #d9aaa2; opacity: .75; }
+    html[data-theme="night"] .hero-action { color: #172019; }
+    .hero-media { position: relative; min-height: 286px; margin: 0; overflow: hidden; border-left: 1px solid var(--line); background: var(--surface-soft); }
+    .hero-media::after { content: ""; position: absolute; inset: 0; background: rgba(244, 247, 242, .14); pointer-events: none; }
+    .hero-media img { display: block; width: 100%; height: 100%; min-height: 286px; object-fit: cover; object-position: 51% 53%; filter: saturate(.8) contrast(.96) brightness(1.03); }
+    html[data-theme="night"] .hero-media { background: #1a221d; }
+    html[data-theme="night"] .hero-media::after { background: rgba(20, 28, 23, .44); }
+    html[data-theme="night"] .hero-media img { filter: saturate(.5) contrast(.94) brightness(.72); }
 
     .section-head { display: flex; align-items: end; gap: 12px; margin: 34px 0 14px; }
     .section-head h2 { margin: 0; font-size: 20px; letter-spacing: -.04em; }
@@ -128,15 +135,15 @@
     .action-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
     .action {
       display: flex; min-height: 126px; flex-direction: column; align-items: flex-start; justify-content: space-between;
-      padding: 17px; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface); color: var(--ink); text-align: left; cursor: pointer; box-shadow: var(--shadow);
+      padding: 17px; border: 1px solid var(--control-line); border-radius: var(--radius-md); background: var(--surface); color: var(--ink); text-align: left; cursor: pointer; box-shadow: var(--shadow);
       transition: transform .18s ease, border-color .18s ease;
     }
     .action:hover, .action:focus-visible { border-color: var(--accent); transform: translateY(-2px); }
-    .action .mini-icon { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 11px; background: var(--surface-soft); color: var(--accent); }
-    .action strong { display: block; margin-top: 14px; font-size: 15px; }
+    .action .mini-icon { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 11px; background: var(--control-soft); color: var(--control-ink); }
+    .action strong { display: block; margin-top: 14px; color: var(--ink); font-size: 15px; }
     .action span { display: block; margin-top: 3px; color: var(--muted); font-size: 12px; }
     .appearance { display: flex; align-items: center; gap: 12px; margin-top: 20px; color: var(--muted); font-size: 13px; }
-    .appearance .text-button { padding: 8px 12px; border-color: var(--line); border-radius: 999px; color: var(--accent-deep); background: var(--surface); }
+    .appearance .text-button { padding: 8px 12px; border-color: var(--control-line); border-radius: 999px; color: var(--control-ink); background: var(--control-soft); }
 
     .recipes-toolbar { display: flex; align-items: center; gap: 10px; padding: 10px 0 14px; border-bottom: 1px solid var(--line); }
     .recipes-toolbar strong { margin-right: auto; }
@@ -151,16 +158,18 @@
     .filter-panel label { display: block; color: var(--muted); font-size: 12px; }
     .filter-panel input { width: 100%; margin-top: 7px; padding: 11px 12px; border: 1px solid var(--line); border-radius: 11px; background: var(--canvas); color: var(--ink); }
     .filter-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
-    .filter-chip { padding: 8px 11px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--muted); cursor: pointer; }
-    .filter-chip.is-selected { border-color: var(--accent); background: var(--surface-soft); color: var(--accent-deep); }
-    .bottom-nav { display: flex; gap: 6px; margin-top: 34px; padding: 6px; border: 1px solid var(--line); border-radius: 17px; background: var(--surface); }
+    .filter-chip { padding: 8px 11px; border: 1px solid var(--control-line); border-radius: 999px; background: var(--surface); color: var(--muted); cursor: pointer; }
+    .filter-chip.is-selected { border-color: var(--accent); background: var(--control-soft); color: var(--control-ink); }
+    .bottom-nav { display: flex; gap: 6px; margin-top: 34px; padding: 6px; border: 1px solid var(--control-line); border-radius: 17px; background: var(--surface); }
     .nav-button { flex: 1; min-height: 42px; border-radius: 12px; }
-    .nav-button.is-active { background: var(--surface-soft); color: var(--accent-deep); }
+    .nav-button.is-active { background: var(--control-soft); color: var(--control-ink); }
     .focus-ring:focus-visible, button:focus-visible, input:focus-visible { outline: 3px solid color-mix(in srgb, var(--accent) 38%, transparent); outline-offset: 2px; }
     @media (max-width: 760px) {
       .shell { padding: 10px 16px 28px; }
-      .hero { grid-template-columns: 1fr; padding: 24px; }
-      .mascot { width: 144px; justify-self: center; margin-top: 20px; }
+      .hero { grid-template-columns: 1fr; }
+      .hero-copy { padding: 26px 24px 24px; }
+      .hero-media { min-height: 216px; border-top: 1px solid var(--line); border-left: 0; }
+      .hero-media img { min-height: 216px; object-position: 51% 51%; }
       .action-grid { grid-template-columns: repeat(2, 1fr); }
     }
     @media (max-width: 430px) {
@@ -196,17 +205,9 @@
           <p>把现有食材变成一顿舒服的饭。少一点颜色，留一点呼吸感。</p>
           <button class="hero-action" type="button" data-page="recipes">看看今晚推荐 <svg class="icon" aria-hidden="true"><use href="#i-arrow"></use></svg></button>
         </div>
-        <svg class="mascot" viewBox="0 0 220 220" role="img" aria-label="原创小羊厨师插画">
-          <path class="wool" d="M54 82c-11-5-12-21-1-26 7-3 15 1 18 9M166 82c11-5 12-21 1-26-7-3-15 1-18 9"/>
-          <path class="hat" d="M76 67c-9-5-11-16-4-22 6-5 13-3 18 3 5-10 18-12 25-3 9-9 23-4 23 9v13z"/>
-          <path class="wool" d="M110 52c43 0 72 29 72 69 0 22-11 39-29 48-11 6-26 9-43 9s-32-3-43-9c-18-9-29-26-29-48 0-40 29-69 72-69z"/>
-          <path class="face" d="M110 78c29 0 48 17 48 41 0 27-19 43-48 43s-48-16-48-43c0-24 19-41 48-41z"/>
-          <path class="detail" d="M78 110c7-4 15-4 22 0M120 110c7-4 15-4 22 0M104 125c4 4 8 4 12 0M96 138c9 6 19 6 28 0"/>
-          <ellipse class="blush" cx="78" cy="128" rx="9" ry="4"/><ellipse class="blush" cx="142" cy="128" rx="9" ry="4"/>
-          <path class="apron" d="M70 160c12 8 28 12 40 12s28-4 40-12c14 8 22 22 24 42H46c2-20 10-34 24-42z"/>
-          <path class="hat" d="M92 169h36l-5 33H97z"/>
-          <path class="detail" d="M111 172v30"/>
-        </svg>
+        <figure class="hero-media">
+          <img src="assets/lazy-sheep-hero-v2.png" alt="懒羊羊侧卧在草地上的彩色插画" width="2400" height="1350" loading="eager" decoding="async">
+        </figure>
       </article>
 
       <div class="stats" aria-label="厨房状态">

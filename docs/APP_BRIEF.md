@@ -2,8 +2,8 @@
 
 ## Task
 
-- Date: 2026-08-05
-- Requested outcome: Compress recipe search and filters into icon-triggered panels, add distinct home icons, strengthen the sheep-chef visual identity, and add clearer page transitions.
+- Date: 2026-08-08
+- Requested outcome: Back-port the approved v0.6.2 Web visual direction into the native Android APK, including the supplied Hero image, restrained color system, clearer controls, and persistent light/night skins.
 - Primary user and context: A single person using an offline Android cooking utility repeatedly at home.
 - Non-goals: Accounts, analytics, network features, commercial modules, a Compose migration, or changes to repository/package identity.
 
@@ -29,9 +29,9 @@
 - Primary flow: Open recipes, scan results immediately, and reveal search or filters only when needed.
 - Retained secondary flows: Home dashboard, recipe details and editing, pantry, pantry matching, specials, favorites, and shopping list.
 - Information priority: Recipe results first; query/filter controls second; summaries remain visible in compact form.
-- Visual direction: Warm paper, jade, cinnabar, old gold, and an original sleepy sheep-chef motif; quiet and tactile rather than promotional.
+- Visual direction: Pale neutral canvas, one muted sage control family, minimal rose and oat accents, and the supplied low-saturation Hero image; quiet and readable rather than colorful.
 - Shape language: Soft geometry with consistent compact radii and 24dp line icons.
-- Theme plan: Retain the existing light theme and semantic palette.
+- Theme plan: Default pale skin plus a persistent true dark skin, each with independent image and control contrast.
 - Motion: Medium-low. Short directional navigation, sheet reveal, press feedback, and static fallback when animations are disabled.
 
 ## Data and Device Conditions
@@ -49,6 +49,7 @@
 - Given a saved query or filter, when recipe details are opened and closed, then the query, filters, result summary, and source page remain intact.
 - Given search or filter icons, when activated, then a labeled dismissible panel exposes the corresponding controls, including clear/reset behavior.
 - Given the home screen, when it opens, then four main actions have distinct semantic icons and the hero communicates live pantry/cookable status.
+- Given the home screen in either skin, when it opens, then the Hero avoids a large deep-green panel and the four actions remain visibly bounded with readable titles and descriptions.
 - Given system animations are disabled, when navigating or changing filters, then the final state appears immediately and remains operable.
 - Given 200% text scale, when controls reflow, then essential labels are not silently clipped and all actions remain reachable.
 

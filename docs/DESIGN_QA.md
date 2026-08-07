@@ -2,36 +2,36 @@
 
 ## Direction
 
-- Screen job: Let recipe content lead; reveal search and filters only when requested.
-- First visual priority: Recipe results on browse, live kitchen status on home.
-- Density: Medium-high on recipe browse, medium on home.
-- Variation: Medium.
+- Screen job: Show live kitchen status first and keep the four repeated actions obvious.
+- First visual priority: The supplied low-saturation Hero image and readable action hierarchy.
+- Density: Medium on home, medium-high on recipe browse.
+- Variation: Low-medium.
 - Motion: Medium-low.
 - Shape language: Soft, compact geometry.
-- Theme: Warm paper, jade, cinnabar, old gold, and restrained category accents.
+- Theme: Pale neutral canvas with one muted sage control family; independent dark skin.
 
 ## Source-Level Matrix
 
 | Surface | Size | Theme | Text scale | Content case | Expected | Result | Evidence |
 |---|---:|---|---:|---|---|---|---|
-| Recipe browse | 320dp target | Light | 100% | Typical | Persistent controls stay compact and results fill remaining height | Source passed | 66dp programmatic header constraint |
-| Recipe panels | Compact target | Light | 200% | Long mixed labels | Content scrolls; fixed actions remain reachable | Pending device check | Scroll container and weighted sheet content |
-| Home | 320dp target | Light | 200% | Empty pantry | Hero grows with content and links to pantry | Pending device check | Content-driven hero height |
-| Recipe browse | Tablet target | Light | 100% | Empty result | Centered content and actionable empty state | Source passed | 820dp content maximum and clickable empty state |
+| Home | 320dp target | Light | 100% | Typical | Image Hero remains pale; four actions form two readable columns | Source passed | Content-driven Hero and weighted 2×2 card rows |
+| Home | 320dp target | Dark | 200% | Long Chinese labels | Hero stacks vertically and card text grows without fixed clipping | Source passed | Compact Hero breakpoint and minimum-height cards |
+| Home | 600dp+ | Light | 100% | Typical | Copy and image share the Hero horizontally | Source passed | 600dp adaptive orientation |
+| Recipe browse | Compact target | Light/Dark | 200% | Active query and filters | Results lead; search/filter remain 48dp icon controls | Source passed | Existing sheet flow and revised bordered icon buttons |
+| Empty/error | Compact target | Light/Dark | 100% | No recipe result | Actionable empty state remains visible | Source passed | Existing clickable empty state retained |
 
 ## Checks
 
-- [x] Recipe content is no longer preceded by an oversized persistent filter stack.
-- [x] Search, filters, close, reset, add, home actions, and navigation use at least 48dp targets.
-- [x] Search and filter panels have explicit close and back behavior.
-- [x] Active search/filter state is expressed through text, state description, and color.
-- [x] Motion has a system-disabled fallback and no continuous animation.
-- [x] Hero art is decorative in the accessibility tree; the containing action has one useful label.
-- [ ] Light and night skins preserve surface, text, divider, status, and focus contrast.
-- [x] Android resource compilation, unit tests, Debug/Release lint, Debug/Release assembly, and signed APK certificate verification pass in GitHub Actions run `31190373790`.
-- [ ] Physical/device font-scale and orientation checks pass.
+- [x] Large deep-green top bar and Hero panel are removed.
+- [x] Hero uses separate light/night 1440×810 resources and is decorative in the accessibility tree.
+- [x] Home titles, descriptions, borders, skin control, and selected navigation have explicit contrast tokens.
+- [x] Search, filter, theme, back, add, and navigation controls remain at least 48dp.
+- [x] Search/filter state, back behavior, local data, and offline behavior are unchanged in source.
+- [x] Motion keeps the system-disabled fallback and no continuous animation was added.
+- [ ] Unit tests, Lint, Debug/Release builds, APK metadata, permissions, and signing pass for v0.6.2-Bata.
+- [ ] Physical-device font-scale, orientation, image decode, and TalkBack checks pass.
 
 ## Known Limits
 
-- GUI screenshots, screen readers, and physical-device interaction are not authorized in this task.
-- Device-only visual and TalkBack checks must remain unclaimed until run by an authorized person.
+- GUI automation, screenshots, screen readers, and physical-device control were not used.
+- Device-only visual and TalkBack checks remain unclaimed until performed by an authorized person.
