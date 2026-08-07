@@ -3,7 +3,7 @@
 ## Task
 
 - Date: 2026-08-08
-- Requested outcome: Back-port the approved v0.6.2 Web visual direction into the native Android APK, including the supplied Hero image, restrained color system, clearer controls, and persistent light/night skins.
+- Requested outcome: Remove the character image from the Android home Hero while retaining the compact status card, recommendation action, restrained color system, and persistent light/night skins.
 - Primary user and context: A single person using an offline Android cooking utility repeatedly at home.
 - Non-goals: Accounts, analytics, network features, commercial modules, a Compose migration, or changes to repository/package identity.
 
@@ -14,7 +14,7 @@
 - External-write approval: The user requested fetching and iterating this exact repository. No neighboring path is authorized.
 - Repository owner/name: `ZAlan-dunk/DawnsTing-Tings-Table` (public)
 - Branch and upstream: `main` -> `origin/main`
-- Cloud comparison result: Fetched 2026-08-05; local `HEAD` matched `origin/main` before edits.
+- Cloud comparison result: Fetched 2026-08-08 through the user-provided loopback proxy; local `HEAD` matched `origin/main` before edits.
 
 ## Stable Identity
 
@@ -29,9 +29,9 @@
 - Primary flow: Open recipes, scan results immediately, and reveal search or filters only when needed.
 - Retained secondary flows: Home dashboard, recipe details and editing, pantry, pantry matching, specials, favorites, and shopping list.
 - Information priority: Recipe results first; query/filter controls second; summaries remain visible in compact form.
-- Visual direction: Pale neutral canvas, one muted sage control family, minimal rose and oat accents, and the supplied low-saturation Hero image; quiet and readable rather than colorful.
+- Visual direction: Pale neutral canvas, one muted sage control family, minimal rose and oat accents, and a compact text-only Hero; quiet and readable rather than decorative.
 - Shape language: Soft geometry with consistent compact radii and 24dp line icons.
-- Theme plan: Default pale skin plus a persistent true dark skin, each with independent image and control contrast.
+- Theme plan: Default pale skin plus a persistent true dark skin, using shared content and skin-specific control contrast without Hero artwork.
 - Motion: Medium-low. Short directional navigation, sheet reveal, press feedback, and static fallback when animations are disabled.
 
 ## Data and Device Conditions
@@ -49,14 +49,15 @@
 - Given a saved query or filter, when recipe details are opened and closed, then the query, filters, result summary, and source page remain intact.
 - Given search or filter icons, when activated, then a labeled dismissible panel exposes the corresponding controls, including clear/reset behavior.
 - Given the home screen, when it opens, then four main actions have distinct semantic icons and the hero communicates live pantry/cookable status.
+- Given the home screen in either skin, when it opens, then no character image is shown above or inside the Hero.
 - Given the home screen in either skin, when it opens, then the Hero avoids a large deep-green panel and the four actions remain visibly bounded with readable titles and descriptions.
 - Given system animations are disabled, when navigating or changing filters, then the final state appears immediately and remains operable.
 - Given 200% text scale, when controls reflow, then essential labels are not silently clipped and all actions remain reachable.
 
 ## Delivery
 
-- Next unused version: `v0.6.2-Bata` / `versionCode 9`
-- Artifact: `LazySheepChef-v0.6.2-Bata-release.apk`
+- Next unused version: `v0.6.3-Bata` / `versionCode 10`
+- Artifact: `LazySheepChef-v0.6.3-Bata-release.apk`
 - Verification: Unit tests, lint, debug/release assembly, APK metadata, permission and signature checks.
-- Historical releases: Preserve `v0.1-beta` through `v0.5-beta` and all assets unchanged.
+- Historical releases: Preserve `v0.1-beta` through `v0.6.2-Bata` and all assets unchanged.
 - Development memory: `docs/APP_DEVELOPMENT_MEMORY.md`

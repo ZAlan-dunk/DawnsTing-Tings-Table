@@ -12,12 +12,19 @@
 
 - Platform and data: Native Android Java, local-first, no account, analytics, ads, or runtime network dependency.
 - UI and UX: Recipe content takes priority over persistent controls; advanced controls use progressive disclosure.
-- Theme and typography: Warm paper, jade, cinnabar, old gold, readable Chinese system typography, and restrained original sheep-chef artwork.
+- Theme and typography: Warm paper, jade, cinnabar, old gold, readable Chinese system typography, and a text-first Android home Hero without character artwork.
 - Motion and performance: Short purposeful motion with an immediate reduced-motion fallback; no continuous decorative animation.
 - Visual system: Default to a restrained low-saturation palette; support a persistent in-app night skin without relying on system mode.
 - Release: Preserve package identity, local-data compatibility, signing continuity, and all historical GitHub Releases.
 
 ## Iterations
+
+### 2026-08-08 v0.6.3-Bata
+
+- Changes: Removed the character image from the Android home Hero, simplified the Hero to text and live kitchen status, and removed the two unused Android raster resources.
+- Decisions and new preferences: Keep the Android home Hero text-first in both skins; preserve the user-provided image only in the historical v0.6.2 Web prototype and historical releases.
+- Verification: MainActivity Java parsing, 26 XML resources, removed-resource references, version identity, manifest permissions, diff checks, and 29 local unit tests passed. GitHub Actions pending.
+- Commit, tag, and Release: Pending.
 
 ### 2026-08-07 v0.6.1-Bata
 

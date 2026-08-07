@@ -18,7 +18,6 @@ import android.text.InputType;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.ViewOutlineProvider;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Button;
@@ -393,16 +392,9 @@ public class MainActivity extends Activity {
 
         LinearLayout hero = vertical();
         hero.setBackground(ripple(SURFACE, 22, CONTROL_LINE));
-        hero.setClipToOutline(true);
-        hero.setOutlineProvider(ViewOutlineProvider.BACKGROUND);
-        int screenWidthDp = getResources().getConfiguration().screenWidthDp;
-        float fontScale = getResources().getConfiguration().fontScale;
-        boolean compactHero = screenWidthDp < 600 || fontScale >= 1.35f;
-        if (!compactHero) hero.setOrientation(LinearLayout.HORIZONTAL);
 
         LinearLayout heroCopy = vertical();
         heroCopy.setPadding(dp(20), dp(20), dp(20), dp(18));
-        if (!compactHero) heroCopy.setGravity(Gravity.CENTER_VERTICAL);
         TextView eyebrow = text("今日厨房", 12, CONTROL_INK, true);
         eyebrow.setLetterSpacing(0.08f);
         heroCopy.addView(eyebrow);
@@ -419,30 +411,15 @@ public class MainActivity extends Activity {
         TextView prompt = text(matches.isEmpty() ? "去整理菜篮" : "看看今晚推荐", 12, CONTROL_INK, true);
         prompt.setPadding(0, dp(10), 0, 0);
         heroCopy.addView(prompt);
-        if (compactHero) {
-            hero.addView(heroCopy, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-        } else {
-            hero.addView(heroCopy, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 0.86f));
-        }
-
-        ImageView artwork = new ImageView(this);
-        artwork.setImageResource(darkTheme
-                ? R.drawable.lazy_sheep_hero_night
-                : R.drawable.lazy_sheep_hero_light);
-        artwork.setScaleType(ImageView.ScaleType.CENTER_CROP);
-        artwork.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-        if (compactHero) {
-            hero.addView(artwork, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(176)));
-        } else {
-            hero.addView(artwork, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1.14f));
-        }
+        hero.addView(heroCopy, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
 
         Recipe heroRecipe = matches.isEmpty() ? null : matches.get(0).recipe;
         hero.setContentDescription(heroRecipe == null
                 ? "今日厨房，" + kitchenState + "，打开菜篮"
                 : "今日厨房，" + kitchenState + "，查看推荐菜谱" + heroRecipe.name);
         hero.setOnClickListener(v -> {
-            MotionSpec.iconNudge(artwork, dp(4));
             if (heroRecipe == null) showPantry(); else openRecipeDetail(heroRecipe, "HOME");
         });
         MotionSpec.attachPress(hero);
