@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>懒羊羊当大厨 · 视觉原型</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --canvas: #f4f5f2;
+      --surface: #ffffff;
+      --surface-soft: #edf2ee;
+      --hero: #eaf0eb;
+      --ink: #202a24;
+      --muted: #77827b;
+      --line: #dbe3dc;
+      --accent: #668172;
+      --accent-deep: #456051;
+      --rose: #bd8b82;
+      --gold: #ad9b66;
+      --shadow: 0 12px 34px rgba(58, 74, 63, .08);
+      --radius-lg: 26px;
+      --radius-md: 18px;
+      --radius-sm: 13px;
+    }
+
+    html[data-theme="night"] {
+      color-scheme: dark;
+      --canvas: #121614;
+      --surface: #1c221e;
+      --surface-soft: #26302a;
+      --hero: #202a24;
+      --ink: #edf2ed;
+      --muted: #aeb8b0;
+      --line: #354139;
+      --accent: #9eb8a6;
+      --accent-deep: #d1e0d5;
+      --rose: #d29b92;
+      --gold: #d0bb81;
+      --shadow: none;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-width: 320px;
+      background: var(--canvas);
+      color: var(--ink);
+      font: 15px/1.55 Inter, "PingFang SC", "Microsoft YaHei", sans-serif;
+      transition: background .2s ease, color .2s ease;
+    }
+    button { font: inherit; }
+    .prototype-note {
+      max-width: 1180px;
+      margin: 14px auto 0;
+      padding: 0 24px;
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: .03em;
+    }
+    .shell { max-width: 1180px; margin: 0 auto; padding: 14px 24px 42px; }
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      min-height: 66px;
+      border-bottom: 1px solid var(--line);
+    }
+    .brand { margin-right: auto; }
+    .brand small { display: block; color: var(--muted); font-size: 12px; letter-spacing: .08em; }
+    .brand strong { display: block; margin-top: 1px; font-size: 20px; letter-spacing: -.03em; }
+    .top-actions { display: flex; align-items: center; gap: 7px; }
+    .icon-button, .nav-button, .text-button {
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      transition: background .18s ease, color .18s ease, border-color .18s ease, transform .18s ease;
+    }
+    .icon-button {
+      display: grid;
+      place-items: center;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+    }
+    .icon-button:hover, .icon-button:focus-visible { background: var(--surface-soft); color: var(--accent-deep); }
+    .icon-button:active { transform: scale(.96); }
+    .icon { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .page { display: none; padding-top: 30px; }
+    .page.is-active { display: block; animation: rise .22s ease both; }
+    @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 250px;
+      align-items: center;
+      min-height: 248px;
+      padding: 30px 34px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      background: var(--hero);
+      box-shadow: var(--shadow);
+    }
+    .hero-copy { max-width: 560px; }
+    .eyebrow { color: var(--accent); font-size: 12px; font-weight: 700; letter-spacing: .12em; }
+    .signature { margin-top: 6px; color: var(--rose); font-size: 12px; font-weight: 700; }
+    h1 { margin: 13px 0 9px; font-size: clamp(28px, 4vw, 44px); line-height: 1.08; letter-spacing: -.065em; }
+    .hero p { max-width: 430px; margin: 0; color: var(--muted); }
+    .hero-action { display: inline-flex; align-items: center; gap: 8px; margin-top: 24px; padding: 11px 16px; border: 0; border-radius: 999px; background: var(--accent); color: #fff; cursor: pointer; }
+    .hero-action:hover, .hero-action:focus-visible { background: var(--accent-deep); }
+    .mascot { justify-self: end; width: 205px; color: var(--accent); }
+    .mascot .wool { fill: #fbfbf7; stroke: var(--accent); stroke-width: 2; }
+    .mascot .face { fill: #e8decb; stroke: var(--accent); stroke-width: 2; }
+    .mascot .apron { fill: #cbd9ce; stroke: var(--accent); stroke-width: 2; }
+    .mascot .hat { fill: #f4eddf; stroke: var(--accent); stroke-width: 2; }
+    .mascot .detail { fill: none; stroke: var(--accent-deep); stroke-width: 2.4; stroke-linecap: round; }
+    .mascot .blush { fill: #d9aaa2; opacity: .75; }
+
+    .section-head { display: flex; align-items: end; gap: 12px; margin: 34px 0 14px; }
+    .section-head h2 { margin: 0; font-size: 20px; letter-spacing: -.04em; }
+    .section-head span { color: var(--muted); font-size: 13px; }
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 14px; }
+    .stat { padding: 16px 18px; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface); }
+    .stat b { display: block; color: var(--accent-deep); font-size: 23px; line-height: 1; }
+    .stat span { display: block; margin-top: 7px; color: var(--muted); font-size: 12px; }
+    .action-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .action {
+      display: flex; min-height: 126px; flex-direction: column; align-items: flex-start; justify-content: space-between;
+      padding: 17px; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface); color: var(--ink); text-align: left; cursor: pointer; box-shadow: var(--shadow);
+      transition: transform .18s ease, border-color .18s ease;
+    }
+    .action:hover, .action:focus-visible { border-color: var(--accent); transform: translateY(-2px); }
+    .action .mini-icon { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 11px; background: var(--surface-soft); color: var(--accent); }
+    .action strong { display: block; margin-top: 14px; font-size: 15px; }
+    .action span { display: block; margin-top: 3px; color: var(--muted); font-size: 12px; }
+    .appearance { display: flex; align-items: center; gap: 12px; margin-top: 20px; color: var(--muted); font-size: 13px; }
+    .appearance .text-button { padding: 8px 12px; border-color: var(--line); border-radius: 999px; color: var(--accent-deep); background: var(--surface); }
+
+    .recipes-toolbar { display: flex; align-items: center; gap: 10px; padding: 10px 0 14px; border-bottom: 1px solid var(--line); }
+    .recipes-toolbar strong { margin-right: auto; }
+    .recipes-toolbar .icon-button { border: 1px solid var(--line); background: var(--surface); }
+    .recipe-list { display: grid; gap: 10px; margin-top: 16px; }
+    .recipe { display: flex; align-items: center; gap: 14px; padding: 16px; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface); }
+    .recipe-mark { display: grid; place-items: center; width: 42px; height: 42px; flex: 0 0 auto; border-radius: 13px; background: var(--surface-soft); color: var(--accent); }
+    .recipe strong { display: block; }
+    .recipe span { display: block; margin-top: 3px; color: var(--muted); font-size: 12px; }
+    .filter-panel { display: none; margin-top: 12px; padding: 16px; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface); }
+    .filter-panel.is-open { display: block; }
+    .filter-panel label { display: block; color: var(--muted); font-size: 12px; }
+    .filter-panel input { width: 100%; margin-top: 7px; padding: 11px 12px; border: 1px solid var(--line); border-radius: 11px; background: var(--canvas); color: var(--ink); }
+    .filter-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .filter-chip { padding: 8px 11px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--muted); cursor: pointer; }
+    .filter-chip.is-selected { border-color: var(--accent); background: var(--surface-soft); color: var(--accent-deep); }
+    .bottom-nav { display: flex; gap: 6px; margin-top: 34px; padding: 6px; border: 1px solid var(--line); border-radius: 17px; background: var(--surface); }
+    .nav-button { flex: 1; min-height: 42px; border-radius: 12px; }
+    .nav-button.is-active { background: var(--surface-soft); color: var(--accent-deep); }
+    .focus-ring:focus-visible, button:focus-visible, input:focus-visible { outline: 3px solid color-mix(in srgb, var(--accent) 38%, transparent); outline-offset: 2px; }
+    @media (max-width: 760px) {
+      .shell { padding: 10px 16px 28px; }
+      .hero { grid-template-columns: 1fr; padding: 24px; }
+      .mascot { width: 144px; justify-self: center; margin-top: 20px; }
+      .action-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 430px) {
+      .prototype-note { padding: 0 16px; }
+      .topbar { min-height: 58px; }
+      .brand strong { font-size: 18px; }
+      .stats { gap: 7px; }
+      .stat { padding: 13px 12px; }
+      .stat b { font-size: 19px; }
+      .action-grid { gap: 8px; }
+      .action { min-height: 118px; padding: 14px; }
+    }
+  </style>
+</head>
+<body>
+  <p class="prototype-note">v0.6.2 视觉原型 · 先确认“轻、少、静”的方向，再回填 APK</p>
+  <main class="shell">
+    <header class="topbar">
+      <div class="brand"><small>今日厨房</small><strong>懒羊羊当大厨～</strong></div>
+      <div class="top-actions">
+        <button class="icon-button" id="themeToggle" type="button" aria-label="切换到黑夜皮肤" title="切换皮肤">
+          <svg class="icon" aria-hidden="true"><use href="#i-moon"></use></svg>
+        </button>
+      </div>
+    </header>
+
+    <section class="page is-active" id="homePage" aria-labelledby="homeTitle">
+      <article class="hero">
+        <div class="hero-copy">
+          <div class="eyebrow">一顿饭，先从轻松开始</div>
+          <div class="signature">漂亮嘞女明星～</div>
+          <h1 id="homeTitle">今天也慢慢做饭。</h1>
+          <p>把现有食材变成一顿舒服的饭。少一点颜色，留一点呼吸感。</p>
+          <button class="hero-action" type="button" data-page="recipes">看看今晚推荐 <svg class="icon" aria-hidden="true"><use href="#i-arrow"></use></svg></button>
+        </div>
+        <svg class="mascot" viewBox="0 0 220 220" role="img" aria-label="原创小羊厨师插画">
+          <path class="wool" d="M54 82c-11-5-12-21-1-26 7-3 15 1 18 9M166 82c11-5 12-21 1-26-7-3-15 1-18 9"/>
+          <path class="hat" d="M76 67c-9-5-11-16-4-22 6-5 13-3 18 3 5-10 18-12 25-3 9-9 23-4 23 9v13z"/>
+          <path class="wool" d="M110 52c43 0 72 29 72 69 0 22-11 39-29 48-11 6-26 9-43 9s-32-3-43-9c-18-9-29-26-29-48 0-40 29-69 72-69z"/>
+          <path class="face" d="M110 78c29 0 48 17 48 41 0 27-19 43-48 43s-48-16-48-43c0-24 19-41 48-41z"/>
+          <path class="detail" d="M78 110c7-4 15-4 22 0M120 110c7-4 15-4 22 0M104 125c4 4 8 4 12 0M96 138c9 6 19 6 28 0"/>
+          <ellipse class="blush" cx="78" cy="128" rx="9" ry="4"/><ellipse class="blush" cx="142" cy="128" rx="9" ry="4"/>
+          <path class="apron" d="M70 160c12 8 28 12 40 12s28-4 40-12c14 8 22 22 24 42H46c2-20 10-34 24-42z"/>
+          <path class="hat" d="M92 169h36l-5 33H97z"/>
+          <path class="detail" d="M111 172v30"/>
+        </svg>
+      </article>
+
+      <div class="stats" aria-label="厨房状态">
+        <div class="stat"><b>12</b><span>菜篮食材</span></div>
+        <div class="stat"><b>6</b><span>今晚可做</span></div>
+        <div class="stat"><b>2</b><span>余量提醒</span></div>
+      </div>
+
+      <div class="section-head"><h2>从这里开始</h2><span>四个入口，统一一个节奏</span></div>
+      <div class="action-grid">
+        <button class="action" type="button" data-page="recipes"><span class="mini-icon"><svg class="icon"><use href="#i-book"></use></svg></span><span><strong>翻菜谱</strong><span>按菜系和做法寻找一餐</span></span></button>
+        <button class="action" type="button"><span class="mini-icon"><svg class="icon"><use href="#i-basket"></use></svg></span><span><strong>打开菜篮</strong><span>看看余量与新购食材</span></span></button>
+        <button class="action" type="button"><span class="mini-icon"><svg class="icon"><use href="#i-pot"></use></svg></span><span><strong>就用现有食材</strong><span>匹配现在可以做的菜</span></span></button>
+        <button class="action" type="button"><span class="mini-icon"><svg class="icon"><use href="#i-star"></use></svg></span><span><strong>特典菜谱</strong><span>两席私藏，静候入席</span></span></button>
+      </div>
+      <div class="appearance"><span>当前皮肤：<b id="themeName">淡色模式</b></span><button class="text-button" id="themeInline" type="button">换成黑夜</button></div>
+    </section>
+
+    <section class="page" id="recipesPage" aria-labelledby="recipesTitle">
+      <div class="section-head"><h2 id="recipesTitle">菜谱</h2><span>先看内容，需要时再筛选</span></div>
+      <div class="recipes-toolbar"><strong>全部菜谱 · 24 道</strong><button class="icon-button" id="searchToggle" type="button" aria-label="打开搜索"><svg class="icon"><use href="#i-search"></use></svg></button><button class="icon-button" id="filterToggle" type="button" aria-label="打开筛选"><svg class="icon"><use href="#i-filter"></use></svg></button></div>
+      <div class="filter-panel" id="filterPanel">
+        <label>搜索菜谱<input placeholder="输入菜名、食材或口味" aria-label="搜索菜谱"></label>
+        <div class="filter-row" aria-label="菜谱筛选"><button class="filter-chip is-selected" type="button">全部</button><button class="filter-chip" type="button">家常融合</button><button class="filter-chip" type="button">快手</button><button class="filter-chip" type="button">清淡</button></div>
+      </div>
+      <div class="recipe-list">
+        <article class="recipe"><span class="recipe-mark"><svg class="icon"><use href="#i-pot"></use></svg></span><div><strong>懒人番茄鸡蛋面</strong><span>家常融合 · 15 分钟 · 2 人份</span></div></article>
+        <article class="recipe"><span class="recipe-mark"><svg class="icon"><use href="#i-leaf"></use></svg></span><div><strong>清爽小炒时蔬</strong><span>清淡 · 12 分钟 · 2 人份</span></div></article>
+        <article class="recipe"><span class="recipe-mark"><svg class="icon"><use href="#i-book"></use></svg></span><div><strong>一锅奶香土豆</strong><span>家常融合 · 25 分钟 · 3 人份</span></div></article>
+      </div>
+    </section>
+
+    <nav class="bottom-nav" aria-label="原型页面切换"><button class="nav-button is-active" type="button" data-page="home">首页</button><button class="nav-button" type="button" data-page="recipes">菜谱</button><button class="nav-button" type="button" data-page="home">菜篮</button><button class="nav-button" type="button" data-page="home">清单</button></nav>
+  </main>
+
+  <svg width="0" height="0" aria-hidden="true" style="position:absolute"><defs>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M19 15.3A7.5 7.5 0 0 1 8.7 5a7.5 7.5 0 1 0 10.3 10.3Z"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h13M13 6l6 6-6 6"/></symbol>
+    <symbol id="i-book" viewBox="0 0 24 24"><path d="M5 5.5c2.7-.7 5-.2 7 1.4v12c-2-1.6-4.3-2.1-7-1.4zM19 5.5c-2.7-.7-5-.2-7 1.4v12c2-1.6 4.3-2.1 7-1.4z"/></symbol>
+    <symbol id="i-basket" viewBox="0 0 24 24"><path d="M4 9h16l-1.5 10h-13zM8 9a4 4 0 0 1 8 0M8 13v2M12 13v2M16 13v2"/></symbol>
+    <symbol id="i-pot" viewBox="0 0 24 24"><path d="M5 10h14v3c0 4-2.7 6-7 6s-7-2-7-6zM8 7h8M4 12H2.5M21.5 12H20M9 5c0-1 .7-1.4.7-2.3M13 6c0-1 .7-1.4.7-2.3"/></symbol>
+    <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.8" cy="10.8" r="6.5"/><path d="m16 16 4.5 4.5"/></symbol>
+    <symbol id="i-filter" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></symbol>
+    <symbol id="i-leaf" viewBox="0 0 24 24"><path d="M19 5c-7 0-12 3-12 8 0 3.3 2.4 5.5 5.6 5.5C18 18.5 19 11 19 5Z"/><path d="M5 20c2-4 5-6.5 10-8.5"/></symbol>
+  </defs></svg>
+  <script>
+    const root = document.documentElement;
+    const themeToggle = document.querySelector('#themeToggle');
+    const themeInline = document.querySelector('#themeInline');
+    const themeName = document.querySelector('#themeName');
+    const savedTheme = localStorage.getItem('prototype-theme') || 'light';
+    function setTheme(mode) {
+      root.dataset.theme = mode === 'night' ? 'night' : 'light';
+      const night = root.dataset.theme === 'night';
+      themeName.textContent = night ? '黑夜模式' : '淡色模式';
+      themeInline.textContent = night ? '换成淡色' : '换成黑夜';
+      themeToggle.setAttribute('aria-label', night ? '切换到淡色皮肤' : '切换到黑夜皮肤');
+      localStorage.setItem('prototype-theme', root.dataset.theme);
+    }
+    function toggleTheme() { setTheme(root.dataset.theme === 'night' ? 'light' : 'night'); }
+    setTheme(savedTheme);
+    themeToggle.addEventListener('click', toggleTheme);
+    themeInline.addEventListener('click', toggleTheme);
+    document.querySelectorAll('[data-page]').forEach(button => button.addEventListener('click', () => {
+      const target = button.dataset.page === 'recipes' ? 'recipes' : 'home';
+      document.querySelector('#homePage').classList.toggle('is-active', target === 'home');
+      document.querySelector('#recipesPage').classList.toggle('is-active', target === 'recipes');
+      document.querySelectorAll('.nav-button').forEach(nav => nav.classList.toggle('is-active', nav.dataset.page === target));
+      window.scrollTo({top: 0, behavior: 'smooth'});
+    }));
+    document.querySelector('#filterToggle').addEventListener('click', () => document.querySelector('#filterPanel').classList.toggle('is-open'));
+    document.querySelector('#searchToggle').addEventListener('click', () => { const panel = document.querySelector('#filterPanel'); panel.classList.add('is-open'); panel.querySelector('input').focus(); });
+    document.querySelectorAll('.filter-chip').forEach(chip => chip.addEventListener('click', () => { document.querySelectorAll('.filter-chip').forEach(item => item.classList.remove('is-selected')); chip.classList.add('is-selected'); }));
+  </script>
+</body>
+</html>

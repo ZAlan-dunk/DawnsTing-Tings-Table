@@ -33,3 +33,10 @@
 - Verification: 7 browse-state tests passed; 24 XML resources parsed; drawable references, manifest permissions, version identity, diff checks, and independent static review passed. GitHub Actions run `31004467704` also passed unit tests, Debug/Release lint, and Debug/Release assembly.
 - Commit, tag, and Release: Feature commit `f93a7fa`, CI signing commit `5fcc29f`, and certificate verification commit `2e7f9e8` are pushed to `main`; `v0.6.0-beta` is published as a GitHub Pre-release.
 - Known gaps: Physical-device visual/TalkBack checks remain unavailable in the current environment. The new release signing key is stored only in GitHub encrypted Secrets.
+
+### 2026-08-07 Web prototype v0.6.2 draft
+
+- Changes: Added a standalone low-color web prototype with a pale neutral Hero, one restrained accent, monochrome entry cards, compact recipe controls, and a real light/night skin toggle.
+- Decision: Do not continue polishing the APK from the current dark Hero; obtain visual approval on the prototype first, then back-port the confirmed tokens and layout.
+- Verification: HTML parsed and inline JavaScript syntax checked. Screenshots and GUI automation were not run under the active safety policy.
+- Commit and release: Prototype commit pending; no APK release created for this draft.
