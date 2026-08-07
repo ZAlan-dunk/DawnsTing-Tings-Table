@@ -28,7 +28,7 @@
 - [x] Motion has a system-disabled fallback and no continuous animation.
 - [x] Hero art is decorative in the accessibility tree; the containing action has one useful label.
 - [ ] Light and night skins preserve surface, text, divider, status, and focus contrast.
-- [ ] Android resource compilation, unit tests, Debug/Release lint, and Debug/Release assembly pass in GitHub Actions.
+- [x] Android resource compilation, unit tests, Debug/Release lint, Debug/Release assembly, and signed APK certificate verification pass in GitHub Actions run `31190373790`.
 - [ ] Physical/device font-scale and orientation checks pass.
 
 ## Known Limits

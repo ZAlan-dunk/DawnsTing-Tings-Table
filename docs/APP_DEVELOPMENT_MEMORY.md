@@ -23,8 +23,8 @@
 
 - Changes: Reduced the palette to muted sage, dusty rose, and oat accents; added persistent light/night skin switching; refined the sheep-chef hero, launcher art, and home icon family; added the “漂亮嘞女明星～” microcopy.
 - Decisions and new preferences: Keep third-party character images out of the APK; use original vector refinements informed by public visual research. The default skin remains light and quiet.
-- Verification: XML/resource checks and theme-state unit tests are pending CI; device screenshots and TalkBack remain unavailable.
-- Commit, tag, and Release: Pending for v0.6.1-Bata.
+- Verification: 26 XML resources parsed; `ThemeMode` compiled locally; GitHub Actions run `31190373790` passed unit tests, Debug/Release lint, Debug/Release assembly, and `apksigner` verification. Device screenshots and TalkBack remain unavailable.
+- Commit, tag, and Release: Commit `3ca17f4` pushed to `main`; tag `v0.6.1-Bata` and its GitHub Pre-release are published.
 
 ### 2026-08-05 v0.6.0-Bata
 

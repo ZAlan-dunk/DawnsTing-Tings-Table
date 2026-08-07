@@ -13,5 +13,5 @@
 
 ## Verification
 
-- Pending CI unit tests, Lint, Debug/Release assembly, and signed APK certificate verification.
+- GitHub Actions run `31190373790` passed unit tests, Lint, Debug/Release assembly, and signed APK certificate verification.
 - Web research was used only for broad visual cues; no third-party character image is bundled.
