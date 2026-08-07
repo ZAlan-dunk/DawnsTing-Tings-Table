@@ -54,8 +54,8 @@
 
 ## Delivery
 
-- Next unused version: `v0.6.1-Bata` / `versionCode 8`
-- Artifact: `LazySheepChef-v0.6.1-Bata-release.apk`
+- Next unused version: `v0.6.2-Bata` / `versionCode 9`
+- Artifact: `LazySheepChef-v0.6.2-Bata-release.apk`
 - Verification: Unit tests, lint, debug/release assembly, APK metadata, permission and signature checks.
 - Historical releases: Preserve `v0.1-beta` through `v0.5-beta` and all assets unchanged.
 - Development memory: `docs/APP_DEVELOPMENT_MEMORY.md`
