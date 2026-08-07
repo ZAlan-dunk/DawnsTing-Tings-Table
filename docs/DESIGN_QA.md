@@ -29,7 +29,7 @@
 - [x] Search/filter state, back behavior, local data, and offline behavior are unchanged in source.
 - [x] Motion keeps the system-disabled fallback and no continuous animation was added.
 - [x] MainActivity Java parsing, 26 XML resources, removed-resource references, version identity, manifest permissions, diff checks, and 29 local unit tests passed.
-- [ ] Debug/Release Lint, Debug/Release builds, APK metadata, permissions, and signing pass for v0.6.3-Bata.
+- [x] Debug/Release Lint, Debug/Release builds, APK metadata, permissions, removed-asset scan, and signing passed in CI run `31209408942` and local artifact checks.
 - [ ] Physical-device font-scale, orientation, and TalkBack checks pass.
 
 ## Known Limits

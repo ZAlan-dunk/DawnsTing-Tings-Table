@@ -23,8 +23,8 @@
 
 - Changes: Removed the character image from the Android home Hero, simplified the Hero to text and live kitchen status, and removed the two unused Android raster resources.
 - Decisions and new preferences: Keep the Android home Hero text-first in both skins; preserve the user-provided image only in the historical v0.6.2 Web prototype and historical releases.
-- Verification: MainActivity Java parsing, 26 XML resources, removed-resource references, version identity, manifest permissions, diff checks, and 29 local unit tests passed. GitHub Actions pending.
-- Commit, tag, and Release: Pending.
+- Verification: MainActivity Java parsing, 26 XML resources, removed-resource references, version identity, manifest permissions, diff checks, and 29 local unit tests passed. GitHub Actions run `31209408942` passed unit tests, Debug/Release Lint, Debug/Release assembly, artifact upload, and release signing. The release APK reports version 10 / 0.6.3-Bata, contains no removed Hero asset, requests no network permission, and uses certificate SHA-256 `ae06e4523f23cd177fe22081c5ae9150b5e9533478de53584566ac22013f6752`.
+- Commit, tag, and Release: Implementation commit `3177608` is pushed; final metadata commit, tag, and Release pending.
 
 ### 2026-08-07 v0.6.1-Bata
 

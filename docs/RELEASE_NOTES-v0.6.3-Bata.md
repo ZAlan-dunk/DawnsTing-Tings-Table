@@ -10,4 +10,4 @@
 
 ## Verification
 
-- Unit tests, Debug/Release Lint, Debug/Release assembly, APK metadata, permission checks, and release signing verification are required before publication.
+- Unit tests, Debug/Release Lint, Debug/Release assembly, APK metadata, permission checks, removed-asset scan, and release signing verification passed.
