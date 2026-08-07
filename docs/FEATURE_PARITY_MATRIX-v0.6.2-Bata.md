@@ -2,8 +2,8 @@
 
 | Area | Existing behavior | Target behavior | Status | Data migration | Verification | Notes |
 |---|---|---|---|---|---|---|
-| Home Hero | Live pantry and recipe recommendation with vector art | Same behavior with approved raster image and pale surface | Changed | None | Source and resource checks pending CI | Click target and accessibility label retained |
-| Home actions | Four single-row actions | Four two-column cards with the same destinations | Changed | None | Source checks pending CI | Semantic icons retained |
+| Home Hero | Live pantry and recipe recommendation with vector art | Same behavior with approved raster image and pale surface | Changed | None | Source checks and CI passed | Click target and accessibility label retained |
+| Home actions | Four single-row actions | Four two-column cards with the same destinations | Changed | None | Source checks and CI passed | Semantic icons retained |
 | Recipe browse | Icon-triggered search/filter sheets | Unchanged behavior with clearer icon boundaries | Existing | None | Existing unit tests and CI | Query/filter state retained |
 | Theme | Persistent light/night selection | Same persistence with revised tokens and explicitly selected light/night Hero resources | Changed | Existing preference key retained | ThemeMode tests and CI | Does not follow system mode |
 | Navigation | Five native bottom destinations | Same destinations and back behavior with clearer selected state | Existing | None | Existing navigation source checks | No route removed |
@@ -21,5 +21,5 @@
 
 - [x] Every existing user-facing capability is represented.
 - [x] Local data migration or reset behavior is explicit.
-- [ ] Navigation, back behavior, offline use, and permissions pass CI checks.
+- [x] Navigation, back behavior, offline use, and permissions pass source and CI checks.
 - [x] The Web prototype remains available until APK acceptance.

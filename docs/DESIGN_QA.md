@@ -28,7 +28,7 @@
 - [x] Search, filter, theme, back, add, and navigation controls remain at least 48dp.
 - [x] Search/filter state, back behavior, local data, and offline behavior are unchanged in source.
 - [x] Motion keeps the system-disabled fallback and no continuous animation was added.
-- [ ] Unit tests, Lint, Debug/Release builds, APK metadata, permissions, and signing pass for v0.6.2-Bata.
+- [x] Unit tests, Debug/Release Lint, Debug/Release builds, APK metadata, permissions, and signing passed in CI run `31199878686` and local artifact checks.
 - [ ] Physical-device font-scale, orientation, image decode, and TalkBack checks pass.
 
 ## Known Limits
