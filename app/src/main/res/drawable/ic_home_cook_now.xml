@@ -7,20 +7,20 @@
     <path
         android:fillColor="@android:color/transparent"
         android:pathData="M5,10h14v2c0,4.4 -2.6,7 -7,7s-7,-2.6 -7,-7zM8.5,7.5h7M3.5,12H5M19,12h1.5"
-        android:strokeColor="#344E45"
+        android:strokeColor="#4E675A"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"
         android:strokeWidth="1.8" />
     <path
         android:fillColor="@android:color/transparent"
         android:pathData="M9,5c0,-1 0.6,-1.4 0.6,-2.3M13,6c0,-1.1 0.7,-1.5 0.7,-2.5"
-        android:strokeColor="#C99A52"
+        android:strokeColor="#BBA36B"
         android:strokeLineCap="round"
         android:strokeWidth="1.8" />
     <path
         android:fillColor="@android:color/transparent"
         android:pathData="M9,13.9l1.8,1.8 3.6,-3.6"
-        android:strokeColor="#A84B3F"
+        android:strokeColor="#B57B71"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"
         android:strokeWidth="1.8" />

@@ -27,7 +27,8 @@
 - [x] Active search/filter state is expressed through text, state description, and color.
 - [x] Motion has a system-disabled fallback and no continuous animation.
 - [x] Hero art is decorative in the accessibility tree; the containing action has one useful label.
-- [x] Android resource compilation, unit tests, Debug/Release lint, and Debug/Release assembly pass in GitHub Actions run `31004467704`.
+- [ ] Light and night skins preserve surface, text, divider, status, and focus contrast.
+- [ ] Android resource compilation, unit tests, Debug/Release lint, and Debug/Release assembly pass in GitHub Actions.
 - [ ] Physical/device font-scale and orientation checks pass.
 
 ## Known Limits

@@ -14,9 +14,17 @@
 - UI and UX: Recipe content takes priority over persistent controls; advanced controls use progressive disclosure.
 - Theme and typography: Warm paper, jade, cinnabar, old gold, readable Chinese system typography, and restrained original sheep-chef artwork.
 - Motion and performance: Short purposeful motion with an immediate reduced-motion fallback; no continuous decorative animation.
+- Visual system: Default to a restrained low-saturation palette; support a persistent in-app night skin without relying on system mode.
 - Release: Preserve package identity, local-data compatibility, signing continuity, and all historical GitHub Releases.
 
 ## Iterations
+
+### 2026-08-07 v0.6.1-Bata
+
+- Changes: Reduced the palette to muted sage, dusty rose, and oat accents; added persistent light/night skin switching; refined the sheep-chef hero, launcher art, and home icon family; added the “漂亮嘞女明星～” microcopy.
+- Decisions and new preferences: Keep third-party character images out of the APK; use original vector refinements informed by public visual research. The default skin remains light and quiet.
+- Verification: XML/resource checks and theme-state unit tests are pending CI; device screenshots and TalkBack remain unavailable.
+- Commit, tag, and Release: Pending for v0.6.1-Bata.
 
 ### 2026-08-05 v0.6.0-Bata
 

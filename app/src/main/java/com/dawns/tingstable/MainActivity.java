@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
+import android.content.SharedPreferences;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.graphics.Typeface;
@@ -48,6 +49,7 @@ import com.dawns.tingstable.model.PantryItem;
 import com.dawns.tingstable.model.Recipe;
 import com.dawns.tingstable.model.RecipeBrowseState;
 import com.dawns.tingstable.model.SpecialCollection;
+import com.dawns.tingstable.model.ThemeMode;
 import com.dawns.tingstable.util.MotionSpec;
 import com.dawns.tingstable.util.RecipeCategories;
 import com.dawns.tingstable.util.RecipeCuisines;
@@ -68,18 +70,26 @@ import java.util.Set;
 
 @SuppressLint("GestureBackNavigation")
 public class MainActivity extends Activity {
-    private static final int PAPER = Color.rgb(246, 239, 228);
-    private static final int INK = Color.rgb(36, 51, 47);
-    private static final int JADE = Color.rgb(40, 83, 74);
-    private static final int JADE_DARK = Color.rgb(23, 58, 53);
-    private static final int JADE_LIGHT = Color.rgb(228, 238, 231);
-    private static final int CINNABAR = Color.rgb(152, 73, 61);
-    private static final int CINNABAR_LIGHT = Color.rgb(246, 230, 225);
-    private static final int GOLD = Color.rgb(128, 97, 38);
-    private static final int GOLD_LIGHT = Color.rgb(244, 236, 214);
-    private static final int MUTED = Color.rgb(93, 101, 95);
-    private static final int LINE = Color.rgb(220, 210, 194);
-    private static final int WHITE = Color.rgb(255, 253, 248);
+    private static final String UI_PREFS = "ui_preferences";
+    private static final String THEME_KEY = "theme_mode";
+
+    private int PAPER;
+    private int SURFACE;
+    private int INK;
+    private int JADE;
+    private int JADE_DARK;
+    private int ACCENT_TEXT;
+    private int JADE_LIGHT;
+    private int CINNABAR;
+    private int CINNABAR_LIGHT;
+    private int GOLD;
+    private int GOLD_LIGHT;
+    private int MUTED;
+    private int LINE;
+    private int WHITE;
+    private int ON_ACCENT;
+    private ThemeMode themeMode = ThemeMode.LIGHT;
+    private boolean darkTheme;
 
     private RecipeRepository repository;
     private PantryRepository pantryRepository;
@@ -89,6 +99,7 @@ public class MainActivity extends Activity {
     private FrameLayout content;
     private TextView titleView;
     private ImageButton backButton;
+    private ImageButton themeButton;
     private final Button[] navButtons = new Button[5];
     private Runnable backAction;
     private MotionSpec.MotionHandle pageMotion;
@@ -132,6 +143,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        loadTheme();
         repository = new RecipeRepository(this);
         pantryRepository = new PantryRepository(this);
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
@@ -151,9 +163,66 @@ public class MainActivity extends Activity {
         window.setNavigationBarColor(Color.TRANSPARENT);
         WindowInsetsControllerCompat controller = WindowCompat.getInsetsController(window, window.getDecorView());
         if (controller != null) {
-            controller.setAppearanceLightStatusBars(false);
-            controller.setAppearanceLightNavigationBars(true);
+            controller.setAppearanceLightStatusBars(!darkTheme);
+            controller.setAppearanceLightNavigationBars(!darkTheme);
         }
+    }
+
+    private void loadTheme() {
+        SharedPreferences preferences = getSharedPreferences(UI_PREFS, MODE_PRIVATE);
+        themeMode = ThemeMode.fromId(preferences.getString(THEME_KEY, ThemeMode.LIGHT.id()));
+        darkTheme = themeMode.isDark();
+        if (darkTheme) {
+            PAPER = Color.rgb(18, 22, 20);
+            SURFACE = Color.rgb(29, 35, 31);
+            INK = Color.rgb(237, 242, 237);
+            JADE = Color.rgb(111, 143, 126);
+            JADE_DARK = Color.rgb(48, 66, 56);
+            ACCENT_TEXT = Color.rgb(182, 207, 190);
+            JADE_LIGHT = Color.rgb(48, 66, 56);
+            CINNABAR = Color.rgb(190, 132, 123);
+            CINNABAR_LIGHT = Color.rgb(70, 48, 46);
+            GOLD = Color.rgb(194, 172, 119);
+            GOLD_LIGHT = Color.rgb(64, 57, 40);
+            MUTED = Color.rgb(169, 180, 171);
+            LINE = Color.rgb(58, 68, 61);
+            WHITE = SURFACE;
+            ON_ACCENT = Color.rgb(244, 248, 244);
+        } else {
+            PAPER = Color.rgb(247, 247, 243);
+            SURFACE = Color.rgb(255, 255, 252);
+            INK = Color.rgb(35, 43, 38);
+            JADE = Color.rgb(78, 103, 90);
+            JADE_DARK = Color.rgb(47, 65, 55);
+            ACCENT_TEXT = JADE_DARK;
+            JADE_LIGHT = Color.rgb(229, 237, 231);
+            CINNABAR = Color.rgb(181, 123, 113);
+            CINNABAR_LIGHT = Color.rgb(244, 232, 228);
+            GOLD = Color.rgb(157, 139, 91);
+            GOLD_LIGHT = Color.rgb(241, 237, 224);
+            MUTED = Color.rgb(105, 114, 107);
+            LINE = Color.rgb(218, 223, 218);
+            WHITE = SURFACE;
+            ON_ACCENT = Color.rgb(250, 252, 249);
+        }
+    }
+
+    private void toggleTheme() {
+        themeMode = themeMode.toggle();
+        getSharedPreferences(UI_PREFS, MODE_PRIVATE)
+                .edit()
+                .putString(THEME_KEY, themeMode.id())
+                .apply();
+        recreate();
+    }
+
+    private void updateThemeButton() {
+        if (themeButton == null) return;
+        String next = darkTheme ? "切换到淡色皮肤" : "切换到黑夜皮肤";
+        themeButton.setContentDescription(next);
+        themeButton.setTooltipText(next);
+        themeButton.setImageTintList(ColorStateList.valueOf(ON_ACCENT));
+        themeButton.setBackground(ripple(Color.argb(darkTheme ? 35 : 28, 255, 255, 255), 14, Color.TRANSPARENT));
     }
 
     private void buildShell() {
@@ -172,15 +241,19 @@ public class MainActivity extends Activity {
 
         backButton = iconButton(R.drawable.ic_action_chevron_right, "返回", false);
         backButton.setRotation(180f);
-        backButton.setImageTintList(ColorStateList.valueOf(WHITE));
+        backButton.setImageTintList(ColorStateList.valueOf(ON_ACCENT));
         backButton.setVisibility(View.GONE);
         topBar.addView(backButton, new LinearLayout.LayoutParams(dp(48), dp(48)));
 
-        titleView = text("懒羊羊当大厨～", 20, WHITE, true);
+        titleView = text("懒羊羊当大厨～", 20, ON_ACCENT, true);
         titleView.setGravity(Gravity.CENTER_VERTICAL);
         titleView.setMaxLines(2);
         ViewCompat.setAccessibilityHeading(titleView, true);
         topBar.addView(titleView, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+        themeButton = iconButton(R.drawable.ic_action_theme, "切换到黑夜皮肤", false);
+        themeButton.setOnClickListener(v -> toggleTheme());
+        topBar.addView(themeButton, new LinearLayout.LayoutParams(dp(48), dp(48)));
+        updateThemeButton();
         shell.addView(topBar, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
         content = new FrameLayout(this);
@@ -189,7 +262,7 @@ public class MainActivity extends Activity {
 
         bottomNav = new LinearLayout(this);
         bottomNav.setGravity(Gravity.CENTER);
-        bottomNav.setBackgroundColor(WHITE);
+        bottomNav.setBackgroundColor(SURFACE);
         bottomNav.setElevation(dp(8));
         addNav(0, "首页", R.drawable.ic_nav_home, this::showHome);
         addNav(1, "菜谱", R.drawable.ic_nav_recipes, () -> showRecipes(RecipeBrowseState.SCOPE_ALL));
@@ -283,8 +356,8 @@ public class MainActivity extends Activity {
             if (button == null) continue;
             boolean active = i == selected;
             boolean changedToActive = active && !button.isSelected();
-            button.setTextColor(active ? JADE_DARK : MUTED);
-            button.setCompoundDrawableTintList(null);
+            button.setTextColor(active ? ACCENT_TEXT : MUTED);
+            button.setCompoundDrawableTintList(ColorStateList.valueOf(active ? ACCENT_TEXT : MUTED));
             button.setBackground(ripple(active ? JADE_LIGHT : Color.TRANSPARENT, 13, Color.TRANSPARENT));
             button.setSelected(active);
             ViewCompat.setStateDescription(button, active ? "当前页面" : "未选择");
@@ -321,17 +394,20 @@ public class MainActivity extends Activity {
         hero.setBackground(ripple(JADE, 22, Color.TRANSPARENT));
 
         LinearLayout heroCopy = vertical();
-        TextView eyebrow = text("今日厨房", 12, Color.rgb(238, 211, 155), true);
+        TextView eyebrow = text("今日厨房", 12, GOLD, true);
         eyebrow.setLetterSpacing(0.08f);
         heroCopy.addView(eyebrow);
-        TextView brand = text("懒羊羊当大厨～", 27, WHITE, true);
+        TextView signature = text("漂亮嘞女明星～", 11, JADE_LIGHT, true);
+        signature.setPadding(0, dp(4), 0, 0);
+        heroCopy.addView(signature);
+        TextView brand = text("懒羊羊当大厨～", 27, ON_ACCENT, true);
         brand.setPadding(0, dp(8), 0, dp(6));
         heroCopy.addView(brand);
         String kitchenState = available == 0
                 ? "菜篮还是空的，先添几样喜欢的食材"
                 : "菜篮有 " + available + " 种 · 今晚能做 " + canCook + " 道";
-        heroCopy.addView(text(kitchenState, 13, Color.rgb(246, 237, 214), false));
-        TextView prompt = text(matches.isEmpty() ? "去整理菜篮" : "看看今晚推荐", 12, Color.rgb(238, 211, 155), true);
+        heroCopy.addView(text(kitchenState, 13, ON_ACCENT, false));
+        TextView prompt = text(matches.isEmpty() ? "去整理菜篮" : "看看今晚推荐", 12, GOLD, true);
         prompt.setPadding(0, dp(10), 0, 0);
         heroCopy.addView(prompt);
         hero.addView(heroCopy, weighted());
@@ -376,7 +452,7 @@ public class MainActivity extends Activity {
         body.addView(homeAction("就用现有食材", "匹配现在可以做的菜", R.drawable.ic_home_cook_now,
                 GOLD_LIGHT, this::showPantryMatches), spaced(10));
         body.addView(homeAction("特典菜谱", "两席私藏，静候入席", R.drawable.ic_home_special,
-                Color.rgb(245, 232, 237), this::showSpecials), spaced(16));
+                CINNABAR_LIGHT, this::showSpecials), spaced(16));
 
         LinearLayout quick = new LinearLayout(this);
         quick.setOrientation(LinearLayout.HORIZONTAL);
@@ -392,16 +468,37 @@ public class MainActivity extends Activity {
         shopping.setOnClickListener(v -> showShoppingList());
         quick.addView(shopping, weighted());
         body.addView(quick, spaced(12));
+        body.addView(appearanceRow(), spaced(8));
 
         setPage("HOME", "今日厨房", null, scroll(body), true);
+    }
+
+    private View appearanceRow() {
+        LinearLayout row = new LinearLayout(this);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(dp(4), dp(2), dp(2), dp(2));
+        ImageView icon = new ImageView(this);
+        icon.setImageResource(R.drawable.ic_action_theme);
+        icon.setImageTintList(ColorStateList.valueOf(JADE));
+        icon.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        row.addView(icon, new LinearLayout.LayoutParams(dp(28), dp(28)));
+        LinearLayout copy = vertical();
+        copy.setPadding(dp(10), 0, dp(8), 0);
+        copy.addView(text("皮肤", 14, INK, true));
+        copy.addView(text(themeMode.isDark() ? "黑夜模式" : "淡色模式", 12, MUTED, false));
+        row.addView(copy, weighted());
+        Button action = outlineButton(themeMode.isDark() ? "换成淡色" : "进入黑夜");
+        action.setOnClickListener(v -> toggleTheme());
+        row.addView(action, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(48)));
+        return row;
     }
 
     private View statCard(String title, String value, String note) {
         LinearLayout box = vertical();
         box.setPadding(dp(13), dp(14), dp(12), dp(13));
-        box.setBackground(roundRect(WHITE, 18, Color.TRANSPARENT));
+        box.setBackground(roundRect(SURFACE, 18, Color.TRANSPARENT));
         box.addView(text(title, 12, MUTED, false));
-        TextView number = text(value, 21, JADE_DARK, true);
+        TextView number = text(value, 21, ACCENT_TEXT, true);
         number.setPadding(0, dp(4), 0, dp(3));
         box.addView(number);
         box.addView(text(note, 10, MUTED, false));
@@ -412,13 +509,14 @@ public class MainActivity extends Activity {
         LinearLayout box = new LinearLayout(this);
         box.setGravity(Gravity.CENTER_VERTICAL);
         box.setPadding(dp(16), dp(15), dp(14), dp(15));
-        box.setBackground(ripple(WHITE, 18, Color.TRANSPARENT));
+        box.setBackground(ripple(SURFACE, 18, Color.TRANSPARENT));
         box.setOnClickListener(v -> action.run());
         MotionSpec.attachPress(box);
         FrameLayout iconFrame = new FrameLayout(this);
         iconFrame.setBackground(roundRect(iconSurface, 14, Color.TRANSPARENT));
         ImageView icon = new ImageView(this);
         icon.setImageResource(iconRes);
+        icon.setImageTintList(ColorStateList.valueOf(JADE));
         icon.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
         iconFrame.addView(icon, new FrameLayout.LayoutParams(dp(24), dp(24), Gravity.CENTER));
         box.addView(iconFrame, new LinearLayout.LayoutParams(dp(48), dp(48)));
@@ -640,7 +738,7 @@ public class MainActivity extends Activity {
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
         LinearLayout sheet = vertical();
         sheet.setPadding(dp(18), dp(10), dp(18), dp(16));
-        sheet.setBackground(roundRect(WHITE, 22, Color.TRANSPARENT));
+        sheet.setBackground(roundRect(SURFACE, 22, Color.TRANSPARENT));
         sheet.setElevation(dp(18));
 
         LinearLayout heading = new LinearLayout(this);
@@ -707,7 +805,7 @@ public class MainActivity extends Activity {
         int tone = categoryTone(RecipeCategories.categoryFor(recipe));
         LinearLayout outer = new LinearLayout(this);
         outer.setOrientation(LinearLayout.HORIZONTAL);
-        outer.setBackground(ripple(WHITE, 18, Color.TRANSPARENT));
+        outer.setBackground(ripple(SURFACE, 18, Color.TRANSPARENT));
         outer.setClipToOutline(true);
         outer.setMinimumHeight(dp(86));
         outer.setContentDescription("查看菜谱：" + recipe.name);
@@ -810,10 +908,10 @@ public class MainActivity extends Activity {
         hero.setPadding(dp(20), dp(20), dp(20), dp(18));
         hero.setBackground(roundRect(tone, 22, Color.TRANSPARENT));
         hero.addView(text(RecipeCategories.categoryFor(recipe), 12, Color.argb(220, 255, 255, 255), true));
-        TextView name = text(recipe.name, 28, WHITE, true);
+        TextView name = text(recipe.name, 28, ON_ACCENT, true);
         name.setPadding(0, dp(8), 0, dp(8));
         hero.addView(name);
-        hero.addView(text(recipe.flavor + "  ·  " + recipe.minutes + " 分钟  ·  " + recipe.servings + " 人份", 14, WHITE, false));
+        hero.addView(text(recipe.flavor + "  ·  " + recipe.minutes + " 分钟  ·  " + recipe.servings + " 人份", 14, ON_ACCENT, false));
         body.addView(hero, spaced(15));
 
         LinearLayout actions = new LinearLayout(this);
@@ -864,7 +962,7 @@ public class MainActivity extends Activity {
         LinearLayout row = new LinearLayout(this);
         row.setGravity(Gravity.CENTER_VERTICAL);
         row.setPadding(dp(14), dp(11), dp(8), dp(11));
-        row.setBackground(ripple(WHITE, 15, Color.TRANSPARENT));
+        row.setBackground(ripple(SURFACE, 15, Color.TRANSPARENT));
         row.setOnClickListener(v -> showRecipesForIngredient(ingredient.name));
         LinearLayout words = vertical();
         words.addView(text(ingredient.name, 15, INK, true));
@@ -884,7 +982,7 @@ public class MainActivity extends Activity {
     private View stepRow(int index, String step) {
         LinearLayout row = new LinearLayout(this);
         row.setGravity(Gravity.TOP);
-        TextView number = text(String.valueOf(index), 13, WHITE, true);
+        TextView number = text(String.valueOf(index), 13, ON_ACCENT, true);
         number.setGravity(Gravity.CENTER);
         number.setBackground(roundRect(JADE, 14, Color.TRANSPARENT));
         row.addView(number, new LinearLayout.LayoutParams(dp(28), dp(28)));
@@ -902,7 +1000,7 @@ public class MainActivity extends Activity {
     }
 
     private void confirmDelete(Recipe recipe) {
-        new AlertDialog.Builder(this)
+        dialogBuilder()
                 .setTitle("删除菜谱")
                 .setMessage("确定删除“" + recipe.name + "”吗？")
                 .setNegativeButton("取消", null)
@@ -985,7 +1083,7 @@ public class MainActivity extends Activity {
     private View pantryShelf(String category, List<PantryItem> items) {
         LinearLayout shelf = vertical();
         shelf.setPadding(dp(15), dp(15), dp(15), dp(9));
-        shelf.setBackground(roundRect(WHITE, 19, Color.TRANSPARENT));
+        shelf.setBackground(roundRect(SURFACE, 19, Color.TRANSPARENT));
         LinearLayout title = new LinearLayout(this);
         title.setGravity(Gravity.CENTER_VERTICAL);
         TextView symbol = text(pantrySymbol(category), 17, categoryTone(category), true);
@@ -1072,7 +1170,7 @@ public class MainActivity extends Activity {
         purchased.setChecked(!editing || isThisWeek(source.purchasedAt));
         form.addView(purchased, spaced(4));
 
-        AlertDialog dialog = new AlertDialog.Builder(this)
+        AlertDialog dialog = dialogBuilder()
                 .setTitle(editing ? "调整食材" : "添入菜篮")
                 .setView(scroll(form))
                 .setNegativeButton("取消", null)
@@ -1105,7 +1203,7 @@ public class MainActivity extends Activity {
                 showPantry();
             });
             if (editing) dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener(v -> {
-                new AlertDialog.Builder(this)
+                dialogBuilder()
                         .setTitle("移出菜篮")
                         .setMessage("确定移除“" + source.name + "”吗？")
                         .setNegativeButton("取消", null)
@@ -1157,7 +1255,7 @@ public class MainActivity extends Activity {
     private View matchCard(RecipeMatcher.Match match) {
         LinearLayout box = vertical();
         box.setPadding(dp(15), dp(14), dp(15), dp(13));
-        box.setBackground(ripple(WHITE, 18, Color.TRANSPARENT));
+        box.setBackground(ripple(SURFACE, 18, Color.TRANSPARENT));
         box.setOnClickListener(v -> openRecipeDetail(match.recipe, "PANTRY_MATCHES"));
         LinearLayout title = new LinearLayout(this);
         title.setGravity(Gravity.CENTER_VERTICAL);
@@ -1194,7 +1292,7 @@ public class MainActivity extends Activity {
             LinearLayout card = vertical();
             card.setPadding(dp(20), dp(20), dp(20), dp(18));
             int tone = "ting".equals(collection.id) ? JADE : CINNABAR;
-            card.setBackground(ripple(WHITE, 21, Color.TRANSPARENT));
+        card.setBackground(ripple(SURFACE, 21, Color.TRANSPARENT));
             TextView mark = text(collection.subtitle, 11, tone, true);
             mark.setLetterSpacing(0.1f);
             card.addView(mark);
@@ -1217,12 +1315,12 @@ public class MainActivity extends Activity {
         hero.setGravity(Gravity.CENTER_HORIZONTAL);
         hero.setPadding(dp(22), dp(30), dp(22), dp(28));
         hero.setBackground(roundRect("ting".equals(collection.id) ? JADE : CINNABAR, 23, Color.TRANSPARENT));
-        hero.addView(text(collection.subtitle, 12, Color.rgb(242, 224, 184), true));
-        TextView title = text(collection.title, 27, WHITE, true);
+        hero.addView(text(collection.subtitle, 12, GOLD, true));
+        TextView title = text(collection.title, 27, ON_ACCENT, true);
         title.setGravity(Gravity.CENTER);
         title.setPadding(0, dp(12), 0, dp(9));
         hero.addView(title);
-        hero.addView(text(collection.quote, 15, WHITE, false));
+        hero.addView(text(collection.quote, 15, ON_ACCENT, false));
         body.addView(hero, spaced(18));
         body.addView(emptyState("尚待入席", ""), spaced(22));
         setPage("SPECIAL_DETAIL", collection.title, this::showSpecials, scroll(body), false);
@@ -1256,7 +1354,7 @@ public class MainActivity extends Activity {
                 LinearLayout row = new LinearLayout(this);
                 row.setGravity(Gravity.CENTER_VERTICAL);
                 row.setPadding(dp(12), dp(9), dp(7), dp(9));
-                row.setBackground(roundRect(WHITE, 15, Color.TRANSPARENT));
+                row.setBackground(roundRect(SURFACE, 15, Color.TRANSPARENT));
                 CheckBox check = new CheckBox(this);
                 check.setText(item);
                 check.setTextSize(15);
@@ -1277,7 +1375,7 @@ public class MainActivity extends Activity {
             }
             Button clear = textButton("清空采购清单", false);
             clear.setTextColor(CINNABAR);
-            clear.setOnClickListener(v -> new AlertDialog.Builder(this)
+            clear.setOnClickListener(v -> dialogBuilder()
                     .setTitle("清空清单")
                     .setMessage("确定移除全部采购项目吗？")
                     .setNegativeButton("取消", null)
@@ -1292,7 +1390,7 @@ public class MainActivity extends Activity {
         EditText input = input("食材名称");
         LinearLayout wrap = dialogBody();
         wrap.addView(input);
-        AlertDialog dialog = new AlertDialog.Builder(this)
+        AlertDialog dialog = dialogBuilder()
                 .setTitle("添加采购项目")
                 .setView(wrap)
                 .setNegativeButton("取消", null)
@@ -1309,7 +1407,7 @@ public class MainActivity extends Activity {
     }
 
     private void showShoppingAction(String item, CheckBox check) {
-        new AlertDialog.Builder(this)
+        dialogBuilder()
                 .setTitle("“" + item + "”已经买到？")
                 .setItems(new String[]{"放入菜篮", "仅从清单移除"}, (dialog, which) -> {
                     if (which == 0) {
@@ -1331,7 +1429,7 @@ public class MainActivity extends Activity {
         EditText unit = input("单位，如 个 / g");
         form.addView(labeled("数量", quantity));
         form.addView(labeled("单位", unit));
-        AlertDialog dialog = new AlertDialog.Builder(this)
+        AlertDialog dialog = dialogBuilder()
                 .setTitle("放入菜篮 · " + item)
                 .setView(form)
                 .setNegativeButton("取消", null)
@@ -1459,7 +1557,7 @@ public class MainActivity extends Activity {
             else showRecipes(RecipeBrowseState.SCOPE_ALL);
             return;
         }
-        new AlertDialog.Builder(this)
+        dialogBuilder()
                 .setTitle("放弃未保存内容？")
                 .setMessage("返回后，本次修改不会保留。")
                 .setNegativeButton("继续编辑", null)
@@ -1548,19 +1646,18 @@ public class MainActivity extends Activity {
     }
 
     private int categoryTone(String category) {
-        if (RecipeCategories.SOUP.equals(category) || "水鲜".equals(category)) return Color.rgb(63, 111, 111);
-        if (RecipeCategories.STIR_FRY.equals(category) || "肉禽".equals(category)) return CINNABAR;
-        if (RecipeCategories.STEAM.equals(category) || "时蔬".equals(category)) return JADE;
-        if (RecipeCategories.STEW.equals(category) || "蛋豆".equals(category)) return Color.rgb(140, 92, 62);
-        if (RecipeCategories.COLD.equals(category) || "水果".equals(category)) return Color.rgb(99, 133, 93);
-        if (RecipeCategories.AIR_FRYER.equals(category) || RecipeCategories.GRILL.equals(category)) return GOLD;
-        if (RecipeCategories.STAPLE.equals(category) || "谷物".equals(category)) return Color.rgb(151, 115, 60);
-        if (RecipeCategories.BAKING.equals(category)) return Color.rgb(154, 103, 119);
-        if ("调料".equals(category)) return Color.rgb(120, 96, 68);
+        if (RecipeCategories.SOUP.equals(category) || RecipeCategories.STEAM.equals(category)
+                || "水鲜".equals(category) || "时蔬".equals(category)) return JADE;
+        if (RecipeCategories.STIR_FRY.equals(category) || RecipeCategories.STEW.equals(category)
+                || RecipeCategories.GRILL.equals(category) || "肉禽".equals(category)
+                || "蛋豆".equals(category)) return CINNABAR;
+        if (RecipeCategories.COLD.equals(category) || RecipeCategories.AIR_FRYER.equals(category)
+                || RecipeCategories.STAPLE.equals(category) || RecipeCategories.BAKING.equals(category)
+                || "水果".equals(category) || "谷物".equals(category) || "调料".equals(category)) return GOLD;
         return MUTED;
     }
 
-    private int softTone(int tone) { return mixColor(tone, WHITE, 0.82f); }
+    private int softTone(int tone) { return mixColor(tone, SURFACE, 0.82f); }
 
     private int statusTone(String status) {
         if (PantryItem.STATUS_EMPTY.equals(status)) return MUTED;
@@ -1569,7 +1666,7 @@ public class MainActivity extends Activity {
     }
 
     private int statusSoft(String status) {
-        if (PantryItem.STATUS_EMPTY.equals(status)) return Color.rgb(236, 234, 229);
+        if (PantryItem.STATUS_EMPTY.equals(status)) return mixColor(SURFACE, MUTED, 0.12f);
         if (PantryItem.STATUS_LOW.equals(status)) return CINNABAR_LIGHT;
         return JADE_LIGHT;
     }
@@ -1584,6 +1681,13 @@ public class MainActivity extends Activity {
         LinearLayout body = vertical();
         body.setPadding(dp(22), dp(8), dp(22), dp(8));
         return body;
+    }
+
+    private AlertDialog.Builder dialogBuilder() {
+        int style = darkTheme
+                ? android.R.style.Theme_Material_Dialog_Alert
+                : android.R.style.Theme_Material_Light_Dialog_Alert;
+        return new AlertDialog.Builder(this, style);
     }
 
     private LinearLayout vertical() {
@@ -1613,11 +1717,11 @@ public class MainActivity extends Activity {
         field.setHint(hint);
         field.setTextSize(15);
         field.setTextColor(INK);
-        field.setHintTextColor(Color.rgb(145, 145, 136));
+        field.setHintTextColor(MUTED);
         field.setSingleLine(false);
         field.setMinHeight(dp(48));
         field.setPadding(dp(13), dp(11), dp(13), dp(11));
-        field.setBackground(roundRect(WHITE, 14, LINE));
+        field.setBackground(roundRect(SURFACE, 14, LINE));
         return field;
     }
 
@@ -1640,7 +1744,7 @@ public class MainActivity extends Activity {
 
     private Button primaryButton(String label) {
         Button button = textButton(label, true);
-        button.setTextColor(WHITE);
+        button.setTextColor(ON_ACCENT);
         button.setTextSize(14);
         button.setPadding(dp(14), dp(9), dp(14), dp(9));
         button.setBackground(ripple(JADE, 14, Color.TRANSPARENT));
@@ -1649,10 +1753,10 @@ public class MainActivity extends Activity {
 
     private Button outlineButton(String label) {
         Button button = textButton(label, true);
-        button.setTextColor(JADE_DARK);
+        button.setTextColor(ACCENT_TEXT);
         button.setTextSize(13);
         button.setPadding(dp(12), dp(9), dp(12), dp(9));
-        button.setBackground(ripple(WHITE, 14, LINE));
+        button.setBackground(ripple(SURFACE, 14, LINE));
         return button;
     }
 
@@ -1688,7 +1792,7 @@ public class MainActivity extends Activity {
 
     private void styleIconButton(ImageButton button, boolean selected) {
         if (button == null) return;
-        button.setImageTintList(ColorStateList.valueOf(selected ? JADE_DARK : MUTED));
+        button.setImageTintList(ColorStateList.valueOf(selected ? ACCENT_TEXT : MUTED));
         button.setBackground(ripple(selected ? JADE_LIGHT : Color.TRANSPARENT, 14, Color.TRANSPARENT));
         button.setSelected(selected);
     }
@@ -1707,8 +1811,8 @@ public class MainActivity extends Activity {
 
     private void styleFilterChip(Button button, boolean selected) {
         button.setTypeface(Typeface.create("sans", selected ? Typeface.BOLD : Typeface.NORMAL));
-        button.setTextColor(selected ? WHITE : JADE_DARK);
-        button.setBackground(ripple(selected ? JADE : WHITE, 14, selected ? Color.TRANSPARENT : LINE));
+        button.setTextColor(selected ? ON_ACCENT : ACCENT_TEXT);
+        button.setBackground(ripple(selected ? JADE : SURFACE, 14, selected ? Color.TRANSPARENT : LINE));
         button.setContentDescription((selected ? "已选择：" : "选择：") + button.getText());
     }
 
@@ -1739,7 +1843,7 @@ public class MainActivity extends Activity {
         LinearLayout box = vertical();
         box.setGravity(Gravity.CENTER_HORIZONTAL);
         box.setPadding(dp(20), dp(30), dp(20), dp(30));
-        box.setBackground(roundRect(WHITE, 19, Color.TRANSPARENT));
+        box.setBackground(roundRect(SURFACE, 19, Color.TRANSPARENT));
         box.addView(text("·", 30, GOLD, true));
         TextView heading = text(title, 17, INK, true);
         heading.setGravity(Gravity.CENTER);

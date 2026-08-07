@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="paper">#FFF9EE</color>
-    <color name="cinnabar">#A84B3F</color>
+    <color name="paper">#F7F7F3</color>
+    <color name="surface">#FFFFFC</color>
+    <color name="cinnabar">#B57B71</color>
 </resources>
