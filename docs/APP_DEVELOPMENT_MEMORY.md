@@ -22,9 +22,9 @@
 ### 2026-08-09 v0.6.5-Bata
 
 - Changes: Unified legacy and Android 13+ system Back dispatch, restored previous-surface navigation, and added a two-step Home exit confirmation.
-- Decisions and new preferences: Keep release and debug APKs clearly separated; only the release APK is intended for cover installation. Preserve the v0.6.0 release certificate and increment the version code.
-- Verification: Back state tests and full CI checks are pending.
-- Commit, tag, and Release: Pending.
+- Decisions and new preferences: Keep release and debug APKs clearly separated; only the release APK is intended for cover installation. For future handoffs, provide the release APK only unless debug output is explicitly requested. Preserve the v0.6.0 release certificate and increment the version code.
+- Verification: 36 unit tests passed; Debug/Release Lint passed with 0 errors; Debug/Release APK assembly passed; package `com.dawns.tingstable` reports version 12 / `0.6.5-Bata`; the release certificate SHA-256 remains `ae06e4523f23cd177fe22081c5ae9150b5e9533478de53584566ac22013f6752`; the release APK SHA-256 is `543dc86690431cfda348607cbed50aa60184577b3fb73c8991ba6293d9682fad`; the remote Release asset was re-downloaded and matched the local hash.
+- Commit, tag, and Release: Source commit `f4086bf` is pushed to `main`; tag `v0.6.5-Bata` and its GitHub Pre-release are published with only `LazySheepChef-v0.6.5-Bata-release.apk`.
 
 ### 2026-08-09 v0.6.4-Bata
 
