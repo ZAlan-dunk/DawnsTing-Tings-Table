@@ -4,15 +4,16 @@
 
 ## 下载 Android 测试版
 
-- 最新发布版本：**v0.6.4-Bata 测试版**
-- 当前源码版本：**v0.6.4-Bata**
+- 最新发布版本：**v0.6.5-Bata 测试版**
+- 当前源码版本：**v0.6.5-Bata**
 - 系统要求：Android 8.0（API 26）及以上
-- 下载地址：[前往 GitHub Releases](https://github.com/ZAlan-dunk/DawnsTing-Tings-Table/releases)
+- 下载地址：[前往 GitHub Releases](https://github.com/ZAlan-dunk/DawnsTing-Tings-Table/releases)。升级安装请下载文件名含 `-release.apk` 的包；`-debug.apk` 仅用于开发验证，不能覆盖 release 包。
 
-v0.5 保持原包名与数据结构，但公开 APK 改用新的个人测试版专用签名。由于 v0.4 原发布私钥不可用，v0.1～v0.4 用户必须先卸载旧版再安装，卸载前请自行备份重要内容；从本版开始沿用同一测试签名即可继续覆盖升级。旧自定义菜谱缺少菜系时会自动归入“家常融合”。
+v0.5 保持原包名与数据结构，但公开 APK 改用新的个人测试版专用签名。由于 v0.4 原发布私钥不可用，v0.1～v0.4 用户必须先卸载旧版再安装，卸载前请自行备份重要内容；从 v0.6.0 起的 release 包沿用同一测试签名并递增版本号，可继续覆盖升级。旧自定义菜谱缺少菜系时会自动归入“家常融合”。
 
-## v0.6.4-Bata 体验更新
+## v0.6.5-Bata 体验更新
 
+- 手机系统返回键现在按页面层级返回上一个界面；首页连续两次返回后才弹出退出确认。
 - 菜谱结果优先显示，搜索与筛选通过顶部图标按需打开。
 - 搜索、范围、菜系和烹饪方式继续支持组合使用，并在返回详情后保留状态。
 - 首页 Hero 移除角色图片，改为更紧凑的纯文字与实时厨房状态卡片。
@@ -83,8 +84,8 @@ v0.5 保持原包名与数据结构，但公开 APK 改用新的个人测试版�
 - Android Gradle Plugin 8.13.0
 - Gradle 8.14.3
 - `applicationId`：`com.dawns.tingstable`
-- `versionCode`：`11`
-- `versionName`：`0.6.4-Bata`
+- `versionCode`：`12`
+- `versionName`：`0.6.5-Bata`
 - 最低 SDK：26
 - 目标 SDK：36
 

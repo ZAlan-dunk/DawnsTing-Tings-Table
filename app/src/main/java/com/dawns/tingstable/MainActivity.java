@@ -17,6 +17,7 @@ import android.graphics.drawable.RippleDrawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.text.InputType;
 import android.view.Gravity;
 import android.view.View;
@@ -53,6 +54,7 @@ import com.dawns.tingstable.model.Ingredient;
 import com.dawns.tingstable.model.PantryItem;
 import com.dawns.tingstable.model.Recipe;
 import com.dawns.tingstable.model.RecipeBrowseState;
+import com.dawns.tingstable.model.BackNavigationState;
 import com.dawns.tingstable.model.SpecialCollection;
 import com.dawns.tingstable.model.SpecialRecipe;
 import com.dawns.tingstable.model.ThemeMode;
@@ -129,6 +131,8 @@ public class MainActivity extends Activity {
     private String pantryFilter = "ALL";
     private String detailReturnPage = "RECIPES";
     private String currentSpecialId = "";
+    private final BackNavigationState backNavigationState = new BackNavigationState();
+    private long lastBackDispatchAt;
 
     private int systemTopInset;
     private int systemBottomInset;
@@ -165,7 +169,7 @@ public class MainActivity extends Activity {
         showHome();
         if (savedInstanceState != null) restorePage(savedInstanceState);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            getOnBackInvokedDispatcher().registerOnBackInvokedCallback(0, this::handleBack);
+            getOnBackInvokedDispatcher().registerOnBackInvokedCallback(0, this::dispatchBack);
         }
     }
 
@@ -327,6 +331,7 @@ public class MainActivity extends Activity {
         View outgoing = content.getChildCount() == 0 ? null : content.getChildAt(content.getChildCount() - 1);
         String previousPage = currentPage;
         currentPage = page;
+        backNavigationState.reset();
         titleView.setText(title);
         backAction = onBack;
         backButton.setVisibility(onBack == null ? View.GONE : View.VISIBLE);
@@ -2227,15 +2232,38 @@ public class MainActivity extends Activity {
     }
 
     private void handleBack() {
-        if (backAction != null) backAction.run();
-        else if (!"HOME".equals(currentPage)) showHome();
-        else finish();
+        if (backAction != null) {
+            backNavigationState.reset();
+            backAction.run();
+            return;
+        }
+        if (!"HOME".equals(currentPage)) {
+            backNavigationState.reset();
+            showHome();
+            return;
+        }
+        if (backNavigationState.shouldConfirmExit(SystemClock.uptimeMillis())) {
+            dialogBuilder()
+                    .setTitle("退出应用？")
+                    .setMessage("当前内容已保存在设备中。")
+                    .setNegativeButton("继续使用", null)
+                    .setPositiveButton("退出", (dialog, which) -> finish())
+                    .show();
+        } else {
+            toast("再按一次返回键，确认退出");
+        }
+    }
+
+    private void dispatchBack() {
+        long now = SystemClock.uptimeMillis();
+        if (now - lastBackDispatchAt < 150L) return;
+        lastBackDispatchAt = now;
+        handleBack();
     }
 
     @Override
     public void onBackPressed() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) handleBack();
-        else super.onBackPressed();
+        dispatchBack();
     }
 
     @Override

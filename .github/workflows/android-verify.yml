@@ -61,7 +61,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: LazySheepChef-v0.6.4-Bata-apks
+          name: LazySheepChef-v0.6.5-Bata-apks
           path: |
             app/build/outputs/apk/debug/*.apk
             app/build/outputs/apk/release/*.apk

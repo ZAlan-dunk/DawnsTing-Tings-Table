@@ -7,6 +7,11 @@
 - Primary user and context: A single person using a local-first Android cooking utility repeatedly at home, with optional network access for the source-linked special collection.
 - Non-goals: Accounts, analytics, unrelated network features, commercial modules, a Compose migration, or changes to repository/package identity.
 
+## v0.6.5 Navigation Addendum
+
+- Requested outcome: Make the Android system Back action navigate to the previous in-app surface; require two consecutive Back actions on Home before showing an exit confirmation.
+- Upgrade constraint: Keep the continuous release signing certificate and increment the version code so the new release APK can cover-install v0.6.4-Bata.
+
 ## Project Boundary
 
 - Resolved project path: `D:\Agent\Githubstorage\DawnsTing-Tings-Table`
@@ -59,11 +64,14 @@
 - Given the home screen in either skin, when it opens, then the Hero avoids a large deep-green panel and the four actions remain visibly bounded with readable titles and descriptions.
 - Given system animations are disabled, when navigating or changing filters, then the final state appears immediately and remains operable.
 - Given 200% text scale, when controls reflow, then essential labels are not silently clipped and all actions remain reachable.
+- Given any non-Home surface, when the Android system Back action is invoked, then the previous in-app surface is shown instead of finishing the Activity.
+- Given Home, when Back is invoked once, then an exit hint is shown; when invoked again within the short confirmation window, then an exit confirmation dialog is shown.
+- Given the release APK, when installed over v0.6.4-Bata, then the package, signing certificate, and incremented version code permit an in-place upgrade.
 
 ## Delivery
 
-- Next unused version: `v0.6.4-Bata` / `versionCode 11`
-- Artifact: `LazySheepChef-v0.6.4-Bata-release.apk`
+- Next unused version: `v0.6.5-Bata` / `versionCode 12`
+- Artifact: `LazySheepChef-v0.6.5-Bata-release.apk`
 - Verification: Unit tests, lint, debug/release assembly, APK metadata, permission and signature checks.
 - Historical releases: Preserve `v0.1-beta` through `v0.6.3-Bata` and all assets unchanged.
 - Development memory: `docs/APP_DEVELOPMENT_MEMORY.md`

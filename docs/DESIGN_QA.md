@@ -22,6 +22,7 @@
 | Yunfeng Special | 320dp target | Light/Dark | 100% | 150 recipes | Ordered cards use one column with stable cover height | Source passed | RecyclerView with fixed-height cover and stable IDs |
 | Yunfeng Special | 600dp+ | Light/Dark | 100% | 150 recipes | Cards use two balanced columns | Source passed | GridLayoutManager switches to two columns at 600dp |
 | Yunfeng Special | Compact target | Light/Dark | 200% | Long title/offline cover | Title remains reachable and missing cover keeps a local placeholder | Source passed | Four-line title allowance, whole-card action, and non-resizing placeholder |
+| System Back | Compact target | Light/Dark | 100% | Detail, form, Home | Previous surface is shown; Home requires two presses before exit confirmation | Source passed | Unified legacy/new back dispatch and two-step Home policy |
 
 ## Checks
 
@@ -38,6 +39,7 @@
 - [x] Yunfeng cards have whole-card accessibility descriptions and preserve the collection after configuration changes.
 - [x] v0.6.4-Bata local Debug/Release Lint completed with no errors; 32 tests, both APK assemblies, version metadata, permission metadata, live 150-entry ordering, and the source cover response passed.
 - [x] v0.6.4-Bata CI build, continuous release signing, and signed-APK certificate checks pass in run `31296224643`.
+- [x] System Back source policy covers page hierarchy and Home exit confirmation; physical-device confirmation remains pending.
 - [ ] Physical-device font-scale, orientation, and TalkBack checks pass.
 
 ## Known Limits

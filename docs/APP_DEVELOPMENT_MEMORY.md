@@ -19,6 +19,13 @@
 
 ## Iterations
 
+### 2026-08-09 v0.6.5-Bata
+
+- Changes: Unified legacy and Android 13+ system Back dispatch, restored previous-surface navigation, and added a two-step Home exit confirmation.
+- Decisions and new preferences: Keep release and debug APKs clearly separated; only the release APK is intended for cover installation. Preserve the v0.6.0 release certificate and increment the version code.
+- Verification: Back state tests and full CI checks are pending.
+- Commit, tag, and Release: Pending.
+
 ### 2026-08-09 v0.6.4-Bata
 
 - Changes: Renamed Fengyue Special to Yunfeng Special; imported 150 ordered recipe titles, canonical source links, and remote cover references; added adaptive source cards, bounded cover caching, invalid-host rejection, and restored special-detail state after configuration changes.
