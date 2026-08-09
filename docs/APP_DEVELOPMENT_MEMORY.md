@@ -10,7 +10,7 @@
 
 ## Stable Preferences
 
-- Platform and data: Native Android Java, local-first, no account, analytics, ads, or runtime network dependency.
+- Platform and data: Native Android Java, local-first, no account, analytics, or ads; source-linked special collections may use bounded HTTPS image loading while core flows remain offline.
 - UI and UX: Recipe content takes priority over persistent controls; advanced controls use progressive disclosure.
 - Theme and typography: Warm paper, jade, cinnabar, old gold, readable Chinese system typography, and a text-first Android home Hero without character artwork.
 - Motion and performance: Short purposeful motion with an immediate reduced-motion fallback; no continuous decorative animation.
@@ -19,12 +19,19 @@
 
 ## Iterations
 
+### 2026-08-09 v0.6.4-Bata
+
+- Changes: Renamed Fengyue Special to Yunfeng Special; imported 150 ordered recipe titles, canonical source links, and remote cover references; added adaptive source cards, bounded cover caching, invalid-host rejection, and restored special-detail state after configuration changes.
+- Decisions and new preferences: Do not bundle third-party recipe text, author information, or cover files in the public APK. Keep source covers remote and open full recipes in the system browser.
+- Verification: The structured importer reproduced all 150 IDs, titles, and cover URLs in the same online order; the first cover returned JPEG successfully. All 32 unit tests passed, Debug/Release Lint completed with no errors, Debug/Release APK assembly passed, and local APK metadata reports package `com.dawns.tingstable`, version 11 / `0.6.4-Bata`, and the expected `INTERNET` permission. Continuous release signing and GitHub Actions remain pending.
+- Commit, tag, and Release: Pending.
+
 ### 2026-08-08 v0.6.3-Bata
 
 - Changes: Removed the character image from the Android home Hero, simplified the Hero to text and live kitchen status, and removed the two unused Android raster resources.
 - Decisions and new preferences: Keep the Android home Hero text-first in both skins; preserve the user-provided image only in the historical v0.6.2 Web prototype and historical releases.
 - Verification: MainActivity Java parsing, 26 XML resources, removed-resource references, version identity, manifest permissions, diff checks, and 29 local unit tests passed. GitHub Actions run `31209408942` passed unit tests, Debug/Release Lint, Debug/Release assembly, artifact upload, and release signing. The release APK reports version 10 / 0.6.3-Bata, contains no removed Hero asset, requests no network permission, and uses certificate SHA-256 `ae06e4523f23cd177fe22081c5ae9150b5e9533478de53584566ac22013f6752`.
-- Commit, tag, and Release: Implementation commit `3177608` is pushed; final metadata commit, tag, and Release pending.
+- Commit, tag, and Release: Implementation commit `3177608` and metadata commit `5e2b225` are pushed; tag `v0.6.3-Bata` and its GitHub Pre-release are published after final CI run `31209824142`.
 
 ### 2026-08-07 v0.6.1-Bata
 

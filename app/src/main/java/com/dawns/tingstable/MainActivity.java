@@ -4,6 +4,8 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
+import android.content.ActivityNotFoundException;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
@@ -12,6 +14,7 @@ import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.RippleDrawable;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.InputType;
@@ -39,22 +42,26 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 import androidx.recyclerview.widget.DefaultItemAnimator;
 import androidx.recyclerview.widget.DiffUtil;
+import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.dawns.tingstable.data.PantryRepository;
 import com.dawns.tingstable.data.RecipeRepository;
+import com.dawns.tingstable.data.SpecialRecipeCatalog;
 import com.dawns.tingstable.model.Ingredient;
 import com.dawns.tingstable.model.PantryItem;
 import com.dawns.tingstable.model.Recipe;
 import com.dawns.tingstable.model.RecipeBrowseState;
 import com.dawns.tingstable.model.SpecialCollection;
+import com.dawns.tingstable.model.SpecialRecipe;
 import com.dawns.tingstable.model.ThemeMode;
 import com.dawns.tingstable.util.MotionSpec;
 import com.dawns.tingstable.util.RecipeCategories;
 import com.dawns.tingstable.util.RecipeCuisines;
 import com.dawns.tingstable.util.RecipeFilters;
 import com.dawns.tingstable.util.RecipeMatcher;
+import com.dawns.tingstable.util.RemoteImageLoader;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -94,6 +101,8 @@ public class MainActivity extends Activity {
 
     private RecipeRepository repository;
     private PantryRepository pantryRepository;
+    private RemoteImageLoader remoteImageLoader;
+    private List<SpecialRecipe> yunfengRecipes;
     private FrameLayout root;
     private LinearLayout topBar;
     private LinearLayout bottomNav;
@@ -119,6 +128,7 @@ public class MainActivity extends Activity {
     private int recipeScrollOffset;
     private String pantryFilter = "ALL";
     private String detailReturnPage = "RECIPES";
+    private String currentSpecialId = "";
 
     private int systemTopInset;
     private int systemBottomInset;
@@ -147,6 +157,7 @@ public class MainActivity extends Activity {
         loadTheme();
         repository = new RecipeRepository(this);
         pantryRepository = new PantryRepository(this);
+        remoteImageLoader = new RemoteImageLoader(this);
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         getWindow().setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
         configureSystemBars();
@@ -448,7 +459,7 @@ public class MainActivity extends Activity {
         actionRowTwo.addView(homeAction("就用现有食材", "匹配现在可以做的菜", R.drawable.ic_home_cook_now,
                 this::showPantryMatches), weighted());
         addGap(actionRowTwo, 10);
-        actionRowTwo.addView(homeAction("特典菜谱", "两席私藏，静候入席", R.drawable.ic_home_special,
+        actionRowTwo.addView(homeAction("特典菜谱", "云峰特典 · 150 道收藏", R.drawable.ic_home_special,
                 this::showSpecials), weighted());
         body.addView(actionRowTwo, spaced(16));
 
@@ -1282,14 +1293,15 @@ public class MainActivity extends Activity {
     }
 
     private void showSpecials() {
+        currentSpecialId = "";
         LinearLayout body = pageBody();
         body.addView(text("特典菜谱", 25, INK, true));
-        body.addView(text("两席私藏，留待慢慢成篇。", 13, MUTED, false), spaced(14));
+        body.addView(text("云峰已收录 150 道，另一席静候成篇。", 13, MUTED, false), spaced(14));
         for (SpecialCollection collection : specialCollections()) {
             LinearLayout card = vertical();
             card.setPadding(dp(20), dp(20), dp(20), dp(18));
             int tone = "ting".equals(collection.id) ? JADE : CINNABAR;
-        card.setBackground(ripple(SURFACE, 21, Color.TRANSPARENT));
+            card.setBackground(ripple(SURFACE, 21, CONTROL_LINE));
             TextView mark = text(collection.subtitle, 11, tone, true);
             mark.setLetterSpacing(0.1f);
             card.addView(mark);
@@ -1297,6 +1309,11 @@ public class MainActivity extends Activity {
             title.setPadding(0, dp(10), 0, dp(7));
             card.addView(title);
             card.addView(text(collection.quote, 14, MUTED, false));
+            if (!collection.recipes.isEmpty()) {
+                TextView count = text(collection.recipes.size() + " 道收藏", 12, MUTED, true);
+                count.setPadding(0, dp(10), 0, 0);
+                card.addView(count);
+            }
             TextView enter = text("入席  ›", 13, tone, true);
             enter.setPadding(0, dp(14), 0, 0);
             card.addView(enter);
@@ -1307,27 +1324,77 @@ public class MainActivity extends Activity {
     }
 
     private void showSpecialDetail(SpecialCollection collection) {
-        LinearLayout body = pageBody();
+        currentSpecialId = collection.id;
+        LinearLayout page = vertical();
+        page.setPadding(dp(16), dp(16), dp(16), 0);
         LinearLayout hero = vertical();
-        hero.setGravity(Gravity.CENTER_HORIZONTAL);
-        hero.setPadding(dp(22), dp(30), dp(22), dp(28));
-        hero.setBackground(roundRect("ting".equals(collection.id) ? JADE : CINNABAR, 23, Color.TRANSPARENT));
-        hero.addView(text(collection.subtitle, 12, GOLD, true));
-        TextView title = text(collection.title, 27, ON_ACCENT, true);
-        title.setGravity(Gravity.CENTER);
-        title.setPadding(0, dp(12), 0, dp(9));
+        hero.setPadding(dp(20), dp(20), dp(20), dp(18));
+        hero.setBackground(roundRect(SURFACE, 20, CONTROL_LINE));
+        int tone = "ting".equals(collection.id) ? JADE : CINNABAR;
+        hero.addView(text(collection.subtitle, 12, tone, true));
+        TextView title = text(collection.title, 25, INK, true);
+        title.setPadding(0, dp(10), 0, dp(7));
         hero.addView(title);
-        hero.addView(text(collection.quote, 15, ON_ACCENT, false));
-        body.addView(hero, spaced(18));
-        body.addView(emptyState("尚待入席", ""), spaced(22));
-        setPage("SPECIAL_DETAIL", collection.title, this::showSpecials, scroll(body), false);
+        hero.addView(text(collection.quote, 14, MUTED, false));
+        if (!collection.recipes.isEmpty()) {
+            TextView count = text(collection.recipes.size() + " 道收藏 · 按收藏顺序排列", 12, CONTROL_INK, true);
+            count.setPadding(0, dp(10), 0, 0);
+            hero.addView(count);
+        }
+        page.addView(hero, spaced(16));
+
+        if (collection.recipes.isEmpty()) {
+            page.addView(emptyState("尚待入席", ""), spaced(22));
+            setPage("SPECIAL_DETAIL", collection.title, this::showSpecials, scroll(page), false);
+            return;
+        }
+
+        RecyclerView list = new RecyclerView(this);
+        int columns = getResources().getConfiguration().screenWidthDp >= 600 ? 2 : 1;
+        list.setLayoutManager(new GridLayoutManager(this, columns));
+        list.setClipToPadding(false);
+        list.setPadding(0, 0, 0, dp(20));
+        list.setAdapter(new SpecialRecipeAdapter(collection.recipes));
+        list.setItemAnimator(null);
+        page.addView(list, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                0,
+                1f
+        ));
+        setPage("SPECIAL_DETAIL", collection.title, this::showSpecials, page, false);
     }
 
     private List<SpecialCollection> specialCollections() {
         return Arrays.asList(
                 new SpecialCollection("ting", "婷馔清欢", "四时特典", "人间有味，四时清欢。", Collections.emptyList()),
-                new SpecialCollection("feng", "楚天云岫 · 峰岳特典", "荆楚特典", "楚水有味，云峰藏香。", Collections.emptyList())
+                new SpecialCollection("feng", "楚天云岫 · 云峰特典", "云峰特典", "楚水有味，云峰藏香。", yunfengRecipes())
         );
+    }
+
+    private List<SpecialRecipe> yunfengRecipes() {
+        if (yunfengRecipes == null) {
+            yunfengRecipes = SpecialRecipeCatalog.load(this, R.raw.yunfeng_special);
+        }
+        return yunfengRecipes;
+    }
+
+    private SpecialCollection findSpecialCollection(String id) {
+        for (SpecialCollection collection : specialCollections()) {
+            if (collection.id.equals(id)) return collection;
+        }
+        return null;
+    }
+
+    private void openSpecialRecipe(SpecialRecipe recipe) {
+        if (!SpecialRecipe.isAllowedRecipeUrl(recipe.sourceUrl)) {
+            toast("原菜谱链接不可用");
+            return;
+        }
+        try {
+            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(recipe.sourceUrl)));
+        } catch (ActivityNotFoundException ignored) {
+            toast("没有可打开网页的应用");
+        }
     }
 
     private void showShoppingList() {
@@ -1901,6 +1968,106 @@ public class MainActivity extends Activity {
 
     private static String safe(String value) { return value == null ? "" : value; }
 
+    private final class SpecialRecipeAdapter extends RecyclerView.Adapter<SpecialRecipeViewHolder> {
+        private final List<SpecialRecipe> items;
+
+        SpecialRecipeAdapter(List<SpecialRecipe> items) {
+            this.items = new ArrayList<>(items);
+            setHasStableIds(true);
+        }
+
+        @Override
+        public long getItemId(int position) {
+            return stableRecipeId("special-" + items.get(position).id);
+        }
+
+        @Override
+        public SpecialRecipeViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+            FrameLayout container = new FrameLayout(MainActivity.this);
+            int side = getResources().getConfiguration().screenWidthDp >= 600 ? dp(6) : 0;
+            container.setPadding(side, 0, side, dp(12));
+            container.setLayoutParams(new RecyclerView.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+            ));
+
+            LinearLayout card = vertical();
+            card.setBackground(ripple(SURFACE, 18, CONTROL_LINE));
+            card.setClipToOutline(true);
+            MotionSpec.attachPress(card);
+
+            ImageView cover = new ImageView(MainActivity.this);
+            cover.setBackgroundColor(CONTROL_SOFT);
+            cover.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+            int coverHeight = getResources().getConfiguration().screenWidthDp >= 600 ? dp(180) : dp(168);
+            card.addView(cover, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    coverHeight
+            ));
+
+            LinearLayout copy = vertical();
+            copy.setPadding(dp(16), dp(14), dp(16), dp(15));
+            TextView order = text("", 11, CINNABAR, true);
+            TextView title = text("", 18, INK, true);
+            title.setMaxLines(4);
+            title.setPadding(0, dp(6), 0, dp(8));
+            TextView source = text("下厨房 · 查看原菜谱  ›", 12, CONTROL_INK, true);
+            copy.addView(order);
+            copy.addView(title);
+            copy.addView(source);
+            card.addView(copy);
+            container.addView(card, new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+            ));
+            return new SpecialRecipeViewHolder(container, card, cover, order, title);
+        }
+
+        @Override
+        public void onBindViewHolder(SpecialRecipeViewHolder holder, int position) {
+            SpecialRecipe recipe = items.get(position);
+            remoteImageLoader.clear(holder.cover);
+            holder.cover.setImageResource(R.drawable.ic_nav_special);
+            holder.cover.setImageTintList(ColorStateList.valueOf(CONTROL_INK));
+            holder.cover.setScaleType(ImageView.ScaleType.CENTER);
+            int padding = dp(56);
+            holder.cover.setPadding(padding, padding, padding, padding);
+            holder.order.setText(String.format(java.util.Locale.ROOT, "第 %03d 道", position + 1));
+            holder.title.setText(recipe.title);
+            holder.card.setContentDescription("第" + (position + 1) + "道，" + recipe.title + "，打开下厨房原菜谱");
+            holder.card.setOnClickListener(v -> openSpecialRecipe(recipe));
+            remoteImageLoader.load(holder.cover, recipe.coverUrl);
+        }
+
+        @Override
+        public void onViewRecycled(SpecialRecipeViewHolder holder) {
+            remoteImageLoader.clear(holder.cover);
+            holder.cover.setImageDrawable(null);
+            holder.card.setOnClickListener(null);
+        }
+
+        @Override
+        public int getItemCount() {
+            return items.size();
+        }
+    }
+
+    private static final class SpecialRecipeViewHolder extends RecyclerView.ViewHolder {
+        final LinearLayout card;
+        final ImageView cover;
+        final TextView order;
+        final TextView title;
+
+        SpecialRecipeViewHolder(FrameLayout container, LinearLayout card, ImageView cover,
+                                TextView order, TextView title) {
+            super(container);
+            this.card = card;
+            this.cover = cover;
+            this.order = order;
+            this.title = title;
+        }
+    }
+
     private final class RecipeListAdapter extends RecyclerView.Adapter<RecipeViewHolder> {
         private List<RecipeListItem> items = Collections.emptyList();
 
@@ -2019,13 +2186,18 @@ public class MainActivity extends Activity {
         pantryFilter = state.getString("pantryFilter", "ALL");
         currentRecipeId = state.getString("recipeId", "");
         detailReturnPage = state.getString("detailReturnPage", "RECIPES");
+        currentSpecialId = state.getString("specialId", "");
         recipeScrollPosition = state.getInt("recipeScrollPosition", 0);
         recipeScrollOffset = state.getInt("recipeScrollOffset", 0);
         String page = state.getString("page", "HOME");
         if ("RECIPES".equals(page)) showRecipes(recipeState.getScope());
         else if ("PANTRY".equals(page)) showPantry();
         else if ("PANTRY_MATCHES".equals(page)) showPantryMatches();
-        else if ("SPECIALS".equals(page) || "SPECIAL_DETAIL".equals(page)) showSpecials();
+        else if ("SPECIALS".equals(page)) showSpecials();
+        else if ("SPECIAL_DETAIL".equals(page)) {
+            SpecialCollection collection = findSpecialCollection(currentSpecialId);
+            if (collection == null) showSpecials(); else showSpecialDetail(collection);
+        }
         else if ("SHOPPING".equals(page)) showShoppingList();
         else if ("DETAIL".equals(page)) {
             Recipe recipe = repository.findById(currentRecipeId);
@@ -2049,6 +2221,7 @@ public class MainActivity extends Activity {
         outState.putString("recipeDimension", recipeState.getDimension());
         outState.putString("pantryFilter", pantryFilter);
         outState.putString("detailReturnPage", detailReturnPage);
+        outState.putString("specialId", currentSpecialId);
         outState.putInt("recipeScrollPosition", recipeScrollPosition);
         outState.putInt("recipeScrollOffset", recipeScrollOffset);
     }
@@ -2063,5 +2236,11 @@ public class MainActivity extends Activity {
     public void onBackPressed() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) handleBack();
         else super.onBackPressed();
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (remoteImageLoader != null) remoteImageLoader.close();
+        super.onDestroy();
     }
 }

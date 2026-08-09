@@ -34,6 +34,17 @@ jobs:
           printf '%s' "$TINGS_TABLE_KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/tings-table-release.p12"
           chmod 600 "$RUNNER_TEMP/tings-table-release.p12"
 
+      - name: Validate Yunfeng catalog
+        run: |
+          catalog="app/src/main/res/raw/yunfeng_special.json"
+          test "$(jq -r '.count' "$catalog")" -eq 150
+          test "$(jq '.recipes | length' "$catalog")" -eq 150
+          test "$(jq '[.recipes[].id] | unique | length' "$catalog")" -eq 150
+          jq -e 'all(.recipes[];
+            ((.title | length) > 0) and
+            (.sourceUrl | test("^https://m\\.xiachufang\\.com/recipe/[0-9]+/$")) and
+            (.coverUrl | test("^https://i2\\.chuimg\\.com/")))' "$catalog"
+
       - name: Test, lint, and assemble
         env:
           TINGS_TABLE_KEYSTORE: ${{ runner.temp }}/tings-table-release.p12
@@ -50,7 +61,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: LazySheepChef-v0.6.3-Bata-apks
+          name: LazySheepChef-v0.6.4-Bata-apks
           path: |
             app/build/outputs/apk/debug/*.apk
             app/build/outputs/apk/release/*.apk

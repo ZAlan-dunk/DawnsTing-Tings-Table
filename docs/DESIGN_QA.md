@@ -19,6 +19,9 @@
 | Home | 600dp+ | Light | 100% | Typical | Hero remains a readable text/status card without an empty artwork region | Source passed | Full-width wrap-content Hero copy |
 | Recipe browse | Compact target | Light/Dark | 200% | Active query and filters | Results lead; search/filter remain 48dp icon controls | Source passed | Existing sheet flow and revised bordered icon buttons |
 | Empty/error | Compact target | Light/Dark | 100% | No recipe result | Actionable empty state remains visible | Source passed | Existing clickable empty state retained |
+| Yunfeng Special | 320dp target | Light/Dark | 100% | 150 recipes | Ordered cards use one column with stable cover height | Source passed | RecyclerView with fixed-height cover and stable IDs |
+| Yunfeng Special | 600dp+ | Light/Dark | 100% | 150 recipes | Cards use two balanced columns | Source passed | GridLayoutManager switches to two columns at 600dp |
+| Yunfeng Special | Compact target | Light/Dark | 200% | Long title/offline cover | Title remains reachable and missing cover keeps a local placeholder | Source passed | Four-line title allowance, whole-card action, and non-resizing placeholder |
 
 ## Checks
 
@@ -30,6 +33,11 @@
 - [x] Motion keeps the system-disabled fallback and no continuous animation was added.
 - [x] MainActivity Java parsing, 26 XML resources, removed-resource references, version identity, manifest permissions, diff checks, and 29 local unit tests passed.
 - [x] Debug/Release Lint, Debug/Release builds, APK metadata, permissions, removed-asset scan, and signing passed in CI run `31209408942` and local artifact checks.
+- [x] Yunfeng catalog contains 150 ordered entries, 150 unique IDs, canonical source links, and allowed cover hosts.
+- [x] Remote covers use three worker threads, bounded memory/disk caches, HTTPS host restrictions, timeouts, a 5MB response limit, and recycled-view guards.
+- [x] Yunfeng cards have whole-card accessibility descriptions and preserve the collection after configuration changes.
+- [x] v0.6.4-Bata local Debug/Release Lint completed with no errors; 32 tests, both APK assemblies, version metadata, permission metadata, live 150-entry ordering, and the source cover response passed.
+- [ ] v0.6.4-Bata CI build, continuous release signing, and signed-APK certificate checks pass.
 - [ ] Physical-device font-scale, orientation, and TalkBack checks pass.
 
 ## Known Limits
