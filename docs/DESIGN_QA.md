@@ -37,7 +37,7 @@
 - [x] Remote covers use three worker threads, bounded memory/disk caches, HTTPS host restrictions, timeouts, a 5MB response limit, and recycled-view guards.
 - [x] Yunfeng cards have whole-card accessibility descriptions and preserve the collection after configuration changes.
 - [x] v0.6.4-Bata local Debug/Release Lint completed with no errors; 32 tests, both APK assemblies, version metadata, permission metadata, live 150-entry ordering, and the source cover response passed.
-- [ ] v0.6.4-Bata CI build, continuous release signing, and signed-APK certificate checks pass.
+- [x] v0.6.4-Bata CI build, continuous release signing, and signed-APK certificate checks pass in run `31296224643`.
 - [ ] Physical-device font-scale, orientation, and TalkBack checks pass.
 
 ## Known Limits

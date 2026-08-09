@@ -23,8 +23,8 @@
 
 - Changes: Renamed Fengyue Special to Yunfeng Special; imported 150 ordered recipe titles, canonical source links, and remote cover references; added adaptive source cards, bounded cover caching, invalid-host rejection, and restored special-detail state after configuration changes.
 - Decisions and new preferences: Do not bundle third-party recipe text, author information, or cover files in the public APK. Keep source covers remote and open full recipes in the system browser.
-- Verification: The structured importer reproduced all 150 IDs, titles, and cover URLs in the same online order; the first cover returned JPEG successfully. All 32 unit tests passed, Debug/Release Lint completed with no errors, Debug/Release APK assembly passed, and local APK metadata reports package `com.dawns.tingstable`, version 11 / `0.6.4-Bata`, and the expected `INTERNET` permission. Continuous release signing and GitHub Actions remain pending.
-- Commit, tag, and Release: Pending.
+- Verification: The structured importer reproduced all 150 IDs, titles, and cover URLs in the same online order; the first cover returned JPEG successfully. Local and CI checks passed: 32 unit tests, Debug/Release Lint, Debug/Release APK assembly, catalog validation, and signed-APK verification. The release APK reports package `com.dawns.tingstable`, version 11 / `0.6.4-Bata`, the expected `INTERNET` permission, and certificate SHA-256 `ae06e4523f23cd177fe22081c5ae9150b5e9533478de53584566ac22013f6752`.
+- Commit, tag, and Release: Source commit `490d979` pushed to `main`; CI run `31296224643` passed; tag `v0.6.4-Bata` and its GitHub Pre-release are published.
 
 ### 2026-08-08 v0.6.3-Bata
 

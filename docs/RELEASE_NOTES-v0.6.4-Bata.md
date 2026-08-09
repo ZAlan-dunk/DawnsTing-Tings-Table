@@ -13,4 +13,5 @@
 
 ## Verification
 
-- Catalog, unit, Lint, build, APK metadata, network permission, and release signing checks are required before publication.
+- Catalog validation, 32 unit tests, Debug/Release Lint, Debug/Release assembly, APK metadata and permission checks, and release signing passed in CI run `31296224643`.
+- The signed release certificate SHA-256 remains `ae06e4523f23cd177fe22081c5ae9150b5e9533478de53584566ac22013f6752`.
