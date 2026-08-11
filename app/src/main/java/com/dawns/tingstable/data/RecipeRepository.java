@@ -95,6 +95,37 @@ public class RecipeRepository {
         } catch (Exception ignored) { }
     }
 
+    public boolean replacePersonalData(List<Recipe> customRecipes, Set<String> favorites,
+                                       Set<String> selectedIngredients, List<String> shoppingItems) {
+        try {
+            JSONArray recipeArray = new JSONArray();
+            Set<String> recipeIds = new LinkedHashSet<>();
+            for (Recipe recipe : customRecipes) {
+                if (recipe == null || recipe.id == null || recipe.id.trim().isEmpty()
+                        || recipe.name == null || recipe.name.trim().isEmpty()
+                        || !recipeIds.add(recipe.id)) continue;
+                recipe.custom = true;
+                recipeArray.put(recipe.toJson());
+            }
+
+            LinkedHashSet<String> cleanFavorites = cleanStrings(favorites);
+            LinkedHashSet<String> cleanSelected = cleanStrings(selectedIngredients);
+            List<String> cleanShopping = new ArrayList<>(cleanStrings(shoppingItems));
+            JSONArray shoppingArray = new JSONArray();
+            for (String item : cleanShopping) shoppingArray.put(item);
+
+            return preferences.edit()
+                    .putString(KEY_CUSTOM, recipeArray.toString())
+                    .putStringSet(KEY_FAVORITES, cleanFavorites)
+                    .putStringSet(KEY_SELECTED, cleanSelected)
+                    .putString(KEY_SHOPPING_ORDERED, shoppingArray.toString())
+                    .putStringSet(KEY_SHOPPING, new LinkedHashSet<>(cleanShopping))
+                    .commit();
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
     public Set<String> getFavorites() { return getStringSet(KEY_FAVORITES); }
 
     public boolean isFavorite(String id) { return getFavorites().contains(id); }
@@ -162,6 +193,16 @@ public class RecipeRepository {
 
     private void saveStringSet(String key, Set<String> values) {
         preferences.edit().putStringSet(key, new LinkedHashSet<>(values)).apply();
+    }
+
+    private LinkedHashSet<String> cleanStrings(Iterable<String> values) {
+        LinkedHashSet<String> result = new LinkedHashSet<>();
+        if (values == null) return result;
+        for (String value : values) {
+            String item = value == null ? "" : value.trim();
+            if (!item.isEmpty()) result.add(item);
+        }
+        return result;
     }
 
     public List<String> getAllIngredientNames() {

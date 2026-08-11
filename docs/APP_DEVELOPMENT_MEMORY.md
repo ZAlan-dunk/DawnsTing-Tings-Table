@@ -5,19 +5,26 @@
 - Repository: `ZAlan-dunk/DawnsTing-Tings-Table`
 - Package ID and namespace: `com.dawns.tingstable`
 - Artifact convention: `LazySheepChef-vMAJOR.MINOR.PATCH-Bata-variant.apk`
-- Installed display name: `懒羊羊当大厨～`
-- In-app display name: `懒羊羊当大厨～`
+- Installed display name: `懒羊羊当大厨~`
+- In-app display name: `懒羊羊当大厨~`
 
 ## Stable Preferences
 
-- Platform and data: Native Android Java, local-first, no account, analytics, or ads; source-linked special collections may use bounded HTTPS image loading while core flows remain offline.
+- Platform and data: Native Android Java, local-first, no account, analytics, or ads; personal data can be explicitly backed up to a private repository while core flows remain offline.
 - UI and UX: Recipe content takes priority over persistent controls; advanced controls use progressive disclosure.
 - Theme and typography: Warm paper, jade, cinnabar, old gold, readable Chinese system typography, and a text-first Android home Hero without character artwork.
 - Motion and performance: Short purposeful motion with an immediate reduced-motion fallback; no continuous decorative animation.
 - Visual system: Default to a restrained low-saturation palette; support a persistent in-app night skin without relying on system mode.
-- Release: Preserve package identity, local-data compatibility, signing continuity, and all historical GitHub Releases.
+- Release: Preserve package identity, local-data compatibility, each repository's signing continuity, and all historical GitHub Releases. Do not build, upload, or hand off a debug APK unless explicitly requested.
 
 ## Iterations
+
+### 2026-08-11 v0.6.6-Bata
+
+- Changes: Added one-tap private cloud upload, backup preview and confirmed restore for custom recipes, favorites, pantry, shopping list, selected ingredients, and theme; added separate Ting/Lulu cloud profiles and rollback-on-failure local restoration.
+- Decisions and new preferences: Both repositories display `懒羊羊当大厨~`; Lulu differs only in repository identity, cloud profile, APK filename, and its existing independent signing chain. Cloud credentials remain encrypted repository Secrets and are never committed. Only release APKs are produced and published.
+- Verification: Backup payload unit tests cover round-trip data, profile mismatch, unsupported schema, and deduplication. Full Android CI, signing, APK metadata, and remote backup smoke verification are required before publication.
+- Commit, tag, and Release: Pending.
 
 ### 2026-08-09 v0.6.5-Bata
 

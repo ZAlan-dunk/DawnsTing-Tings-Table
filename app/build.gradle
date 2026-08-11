@@ -7,6 +7,8 @@ def releaseStorePassword = System.getenv('TINGS_TABLE_STORE_PASSWORD')
 def releaseKeyAlias = System.getenv('TINGS_TABLE_KEY_ALIAS')
 def releaseKeyPassword = System.getenv('TINGS_TABLE_KEY_PASSWORD')
 def hasReleaseSigning = releaseStoreFile && releaseStorePassword && releaseKeyAlias && releaseKeyPassword
+def recipeCloudToken = System.getenv('RECIPE_CLOUD_TOKEN') ?: ''
+def buildConfigString = { value -> '"' + value.replace('\\', '\\\\').replace('"', '\\"') + '"' }
 
 android {
     namespace 'com.dawns.tingstable'
@@ -16,8 +18,13 @@ android {
         applicationId 'com.dawns.tingstable'
         minSdk 26
         targetSdk 36
-        versionCode 12
-        versionName '0.6.5-Bata'
+        versionCode 13
+        versionName '0.6.6-Bata'
+
+        buildConfigField 'String', 'RECIPE_CLOUD_OWNER', buildConfigString('ZAlan-dunk')
+        buildConfigField 'String', 'RECIPE_CLOUD_REPOSITORY', buildConfigString('Dawnsdew-Recipe-Cloud')
+        buildConfigField 'String', 'RECIPE_CLOUD_PROFILE_ID', buildConfigString('tings')
+        buildConfigField 'String', 'RECIPE_CLOUD_TOKEN', buildConfigString(recipeCloudToken)
 
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
     }
@@ -45,10 +52,15 @@ android {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
+
+    buildFeatures {
+        buildConfig true
+    }
 }
 
 dependencies {
     implementation 'androidx.core:core:1.17.0'
     implementation 'androidx.recyclerview:recyclerview:1.4.0'
     testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.json:json:20250517'
 }

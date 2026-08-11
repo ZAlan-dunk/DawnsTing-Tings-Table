@@ -17,6 +17,7 @@ jobs:
       TINGS_TABLE_STORE_PASSWORD: ${{ secrets.TINGS_TABLE_STORE_PASSWORD }}
       TINGS_TABLE_KEY_ALIAS: ${{ secrets.TINGS_TABLE_KEY_ALIAS }}
       TINGS_TABLE_KEY_PASSWORD: ${{ secrets.TINGS_TABLE_KEY_PASSWORD }}
+      RECIPE_CLOUD_TOKEN: ${{ secrets.RECIPE_CLOUD_TOKEN }}
 
     steps:
       - uses: actions/checkout@v4
@@ -27,6 +28,22 @@ jobs:
           java-version: '17'
 
       - uses: gradle/actions/setup-gradle@v4
+
+      - name: Require cloud backup credential
+        if: ${{ github.event_name == 'push' }}
+        run: test -n "$RECIPE_CLOUD_TOKEN"
+
+      - name: Verify cloud backup write access
+        if: ${{ github.event_name == 'push' }}
+        run: |
+          status="$(curl --silent --show-error --output "$RUNNER_TEMP/cloud-write-check.json" --write-out '%{http_code}' \
+            --request POST \
+            --header "Accept: application/vnd.github+json" \
+            --header "Authorization: Bearer $RECIPE_CLOUD_TOKEN" \
+            --header "X-GitHub-Api-Version: 2022-11-28" \
+            https://api.github.com/repos/ZAlan-dunk/Dawnsdew-Recipe-Cloud/git/blobs \
+            --data '{"content":"cloud-backup-write-check","encoding":"utf-8"}')"
+          test "$status" -eq 201
 
       - name: Prepare release signing
         if: ${{ env.TINGS_TABLE_KEYSTORE_B64 != '' }}
@@ -48,21 +65,24 @@ jobs:
       - name: Test, lint, and assemble
         env:
           TINGS_TABLE_KEYSTORE: ${{ runner.temp }}/tings-table-release.p12
-        run: ./gradlew --no-daemon testDebugUnitTest lintDebug lintRelease assembleDebug assembleRelease
+        run: ./gradlew --no-daemon testDebugUnitTest lintDebug lintRelease assembleRelease
 
       - name: Verify signed release APK
         if: ${{ env.TINGS_TABLE_KEYSTORE_B64 != '' }}
         run: |
           apksigner_path="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          aapt_path="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -n 1)"
           test -n "$apksigner_path"
+          test -n "$aapt_path"
           "$apksigner_path" verify --verbose --print-certs app/build/outputs/apk/release/app-release.apk
+          badging="$("$aapt_path" dump badging app/build/outputs/apk/release/app-release.apk)"
+          printf '%s\n' "$badging" | grep -F "package: name='com.dawns.tingstable' versionCode='13' versionName='0.6.6-Bata'"
+          printf '%s\n' "$badging" | grep -F "application-label:'懒羊羊当大厨~'"
 
       - name: Upload APK outputs
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: LazySheepChef-v0.6.5-Bata-apks
-          path: |
-            app/build/outputs/apk/debug/*.apk
-            app/build/outputs/apk/release/*.apk
+          name: LazySheepChef-v0.6.6-Bata-release
+          path: app/build/outputs/apk/release/*.apk
           if-no-files-found: warn

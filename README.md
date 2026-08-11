@@ -1,17 +1,25 @@
-# 懒羊羊当大厨～
+# 懒羊羊当大厨~
 
 一款仅供个人使用的原生 Android 离线菜谱与菜篮工具。本项目为非商业测试版，不面向商业运营或生产环境。
 
 ## 下载 Android 测试版
 
-- 最新发布版本：**v0.6.5-Bata 测试版**
-- 当前源码版本：**v0.6.5-Bata**
+- 最新发布版本：**v0.6.6-Bata 测试版**
+- 当前源码版本：**v0.6.6-Bata**
 - 系统要求：Android 8.0（API 26）及以上
-- 下载地址：[前往 GitHub Releases](https://github.com/ZAlan-dunk/DawnsTing-Tings-Table/releases)。升级安装请下载文件名含 `-release.apk` 的包；`-debug.apk` 仅用于开发验证，不能覆盖 release 包。
+- 下载地址：[前往 GitHub Releases](https://github.com/ZAlan-dunk/DawnsTing-Tings-Table/releases)。发布页只提供正式签名的 release APK。
 
 v0.5 保持原包名与数据结构，但公开 APK 改用新的个人测试版专用签名。由于 v0.4 原发布私钥不可用，v0.1～v0.4 用户必须先卸载旧版再安装，卸载前请自行备份重要内容；从 v0.6.0 起的 release 包沿用同一测试签名并递增版本号，可继续覆盖升级。旧自定义菜谱缺少菜系时会自动归入“家常融合”。
 
-## v0.6.5-Bata 体验更新
+## v0.6.6-Bata 数据备份
+
+- 首页新增紧凑的“云端备份”数据行，可一键上传个人数据。
+- 恢复前会读取云端备份、显示时间和内容摘要，并要求二次确认。
+- 备份包括自定义菜谱、收藏、菜篮、采购清单、已选食材和皮肤设置，不重复上传 APK 内置菜谱。
+- Ting 与 Lulu 发布包使用独立的云端目录，避免两位使用者的数据互相覆盖。
+- 卸载应用、换机或因签名不同而重装后，可安装对应发布包并从云端恢复个人数据。
+
+## 体验更新
 
 - 手机系统返回键现在按页面层级返回上一个界面；首页连续两次返回后才弹出退出确认。
 - 菜谱结果优先显示，搜索与筛选通过顶部图标按需打开。
@@ -72,11 +80,11 @@ v0.5 保持原包名与数据结构，但公开 APK 改用新的个人测试版�
 ## 数据与隐私
 
 - 仅供个人、非商业用途，当前版本属于功能测试版。
-- 菜谱、菜篮和清单数据保存在当前设备本地。
+- 菜谱、菜篮和清单默认保存在当前设备本地；只有点击“上传”后，个人数据才会写入私有备份仓库。
 - 无需注册或登录。
 - 不包含账号、社区、社交、广告或商业模块。
 - 云峰特典使用 `INTERNET` 权限按需加载来源封面；其他核心功能仍可离线使用。
-- 卸载应用通常会清除本地数据；当前版本尚未提供导入导出。
+- 卸载应用仍会清除设备本地数据；卸载前应先确认首页显示最近上传时间。
 
 ## 技术信息
 
@@ -84,8 +92,8 @@ v0.5 保持原包名与数据结构，但公开 APK 改用新的个人测试版�
 - Android Gradle Plugin 8.13.0
 - Gradle 8.14.3
 - `applicationId`：`com.dawns.tingstable`
-- `versionCode`：`12`
-- `versionName`：`0.6.5-Bata`
+- `versionCode`：`13`
+- `versionName`：`0.6.6-Bata`
 - 最低 SDK：26
 - 目标 SDK：36
 
@@ -96,9 +104,10 @@ v0.5 保持原包名与数据结构，但公开 APK 改用新的个人测试版�
 ```powershell
 $env:ANDROID_HOME='你的 Android SDK 路径'
 $env:ANDROID_SDK_ROOT=$env:ANDROID_HOME
-.\gradlew.bat testDebugUnitTest lintDebug assembleDebug
+$env:RECIPE_CLOUD_TOKEN='仅限私有备份仓库 Contents 读写的细粒度令牌'
+.\gradlew.bat testDebugUnitTest lintDebug lintRelease assembleRelease
 ```
 
-个人测试 APK 使用独立且持续保留的测试密钥签名。密钥、密码、构建缓存和 APK 不提交到源码仓库。
+个人测试 APK 使用独立且持续保留的测试密钥签名。签名密钥、密码、云端令牌、构建缓存和 APK 不提交到源码仓库。
 
 完整版本记录见 [CHANGELOG.md](CHANGELOG.md)。

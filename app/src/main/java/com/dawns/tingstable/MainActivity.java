@@ -48,6 +48,9 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.dawns.tingstable.data.PantryRepository;
+import com.dawns.tingstable.data.BackupPayload;
+import com.dawns.tingstable.data.GitHubBackupClient;
+import com.dawns.tingstable.data.LocalBackupManager;
 import com.dawns.tingstable.data.RecipeRepository;
 import com.dawns.tingstable.data.SpecialRecipeCatalog;
 import com.dawns.tingstable.model.Ingredient;
@@ -65,11 +68,13 @@ import com.dawns.tingstable.util.RecipeFilters;
 import com.dawns.tingstable.util.RecipeMatcher;
 import com.dawns.tingstable.util.RemoteImageLoader;
 
+import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -103,6 +108,8 @@ public class MainActivity extends Activity {
 
     private RecipeRepository repository;
     private PantryRepository pantryRepository;
+    private LocalBackupManager localBackupManager;
+    private GitHubBackupClient cloudBackupClient;
     private RemoteImageLoader remoteImageLoader;
     private List<SpecialRecipe> yunfengRecipes;
     private FrameLayout root;
@@ -133,6 +140,7 @@ public class MainActivity extends Activity {
     private String currentSpecialId = "";
     private final BackNavigationState backNavigationState = new BackNavigationState();
     private long lastBackDispatchAt;
+    private AlertDialog cloudProgressDialog;
 
     private int systemTopInset;
     private int systemBottomInset;
@@ -161,6 +169,13 @@ public class MainActivity extends Activity {
         loadTheme();
         repository = new RecipeRepository(this);
         pantryRepository = new PantryRepository(this);
+        localBackupManager = new LocalBackupManager(this, repository, pantryRepository);
+        cloudBackupClient = new GitHubBackupClient(
+                BuildConfig.RECIPE_CLOUD_OWNER,
+                BuildConfig.RECIPE_CLOUD_REPOSITORY,
+                BuildConfig.RECIPE_CLOUD_PROFILE_ID,
+                BuildConfig.RECIPE_CLOUD_TOKEN
+        );
         remoteImageLoader = new RemoteImageLoader(this);
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         getWindow().setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
@@ -263,7 +278,7 @@ public class MainActivity extends Activity {
         backButton.setVisibility(View.GONE);
         topBar.addView(backButton, new LinearLayout.LayoutParams(dp(48), dp(48)));
 
-        titleView = text("懒羊羊当大厨～", 20, INK, true);
+        titleView = text(getString(R.string.app_name), 20, INK, true);
         titleView.setGravity(Gravity.CENTER_VERTICAL);
         titleView.setMaxLines(2);
         ViewCompat.setAccessibilityHeading(titleView, true);
@@ -417,7 +432,7 @@ public class MainActivity extends Activity {
         TextView signature = text("漂亮嘞女明星～", 11, CINNABAR, true);
         signature.setPadding(0, dp(4), 0, 0);
         heroCopy.addView(signature);
-        TextView brand = text("懒羊羊当大厨～", 27, INK, true);
+        TextView brand = text(getString(R.string.app_name), 27, INK, true);
         brand.setPadding(0, dp(8), 0, dp(6));
         heroCopy.addView(brand);
         String kitchenState = available == 0
@@ -482,9 +497,164 @@ public class MainActivity extends Activity {
         shopping.setOnClickListener(v -> showShoppingList());
         quick.addView(shopping, weighted());
         body.addView(quick, spaced(12));
+        body.addView(cloudBackupRow(), spaced(4));
         body.addView(appearanceRow(), spaced(8));
 
         setPage("HOME", "今日厨房", null, scroll(body), true);
+    }
+
+    private View cloudBackupRow() {
+        LinearLayout row = new LinearLayout(this);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(dp(4), dp(2), dp(2), dp(2));
+
+        ImageView icon = new ImageView(this);
+        icon.setImageResource(R.drawable.ic_action_cloud);
+        icon.setImageTintList(ColorStateList.valueOf(JADE));
+        icon.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        row.addView(icon, new LinearLayout.LayoutParams(dp(28), dp(28)));
+
+        LinearLayout copy = vertical();
+        copy.setPadding(dp(10), 0, dp(6), 0);
+        copy.addView(text("云端备份", 14, INK, true));
+        copy.addView(text(cloudBackupStatus(), 12, MUTED, false));
+        row.addView(copy, weighted());
+
+        Button restore = outlineButton("恢复");
+        restore.setContentDescription("查看并恢复云端备份");
+        restore.setOnClickListener(v -> restoreCloudBackup());
+        row.addView(restore, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(48)));
+        addGap(row, 6);
+
+        Button upload = primaryButton("上传");
+        upload.setContentDescription("立即上传个人数据备份");
+        upload.setOnClickListener(v -> uploadCloudBackup());
+        row.addView(upload, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(48)));
+
+        boolean configured = cloudBackupClient != null && cloudBackupClient.isConfigured();
+        restore.setEnabled(configured);
+        upload.setEnabled(configured);
+        if (!configured) {
+            restore.setAlpha(0.5f);
+            upload.setAlpha(0.5f);
+        }
+        return row;
+    }
+
+    private String cloudBackupStatus() {
+        if (cloudBackupClient == null || !cloudBackupClient.isConfigured()) return "云备份暂不可用";
+        long uploaded = localBackupManager.lastUploadAt();
+        long restored = localBackupManager.lastRestoreAt();
+        if (uploaded <= 0L && restored <= 0L) return "尚未上传备份";
+        if (uploaded >= restored) return "最近上传 " + formatBackupTime(uploaded);
+        return "最近恢复 " + formatBackupTime(restored);
+    }
+
+    private void uploadCloudBackup() {
+        if (!ensureCloudBackupConfigured()) return;
+        try {
+            BackupPayload payload = localBackupManager.capture(
+                    BuildConfig.RECIPE_CLOUD_PROFILE_ID,
+                    BuildConfig.VERSION_NAME,
+                    System.currentTimeMillis()
+            );
+            String raw = payload.toJson().toString();
+            showCloudProgress("正在上传", "正在保存个人菜谱数据…");
+            cloudBackupClient.upload(raw, new GitHubBackupClient.Callback<Long>() {
+                @Override
+                public void onSuccess(Long completedAt) {
+                    dismissCloudProgress();
+                    localBackupManager.markUploaded(completedAt);
+                    toast("云端备份已更新");
+                    if ("HOME".equals(currentPage)) showHome();
+                }
+
+                @Override
+                public void onError(String message) {
+                    dismissCloudProgress();
+                    showCloudError(message);
+                }
+            });
+        } catch (Exception error) {
+            dismissCloudProgress();
+            showCloudError(error.getMessage());
+        }
+    }
+
+    private void restoreCloudBackup() {
+        if (!ensureCloudBackupConfigured()) return;
+        showCloudProgress("正在读取", "正在获取最近的云端备份…");
+        cloudBackupClient.download(new GitHubBackupClient.Callback<String>() {
+            @Override
+            public void onSuccess(String raw) {
+                dismissCloudProgress();
+                try {
+                    BackupPayload payload = localBackupManager.parse(raw, BuildConfig.RECIPE_CLOUD_PROFILE_ID);
+                    showRestoreConfirmation(payload);
+                } catch (Exception error) {
+                    showCloudError(error.getMessage());
+                }
+            }
+
+            @Override
+            public void onError(String message) {
+                dismissCloudProgress();
+                showCloudError(message);
+            }
+        });
+    }
+
+    private void showRestoreConfirmation(BackupPayload payload) {
+        String time = payload.createdAt > 0L ? formatBackupTime(payload.createdAt) : "时间未知";
+        dialogBuilder()
+                .setTitle("恢复这份备份？")
+                .setMessage("备份时间：" + time + "\n" + payload.summary()
+                        + "\n\n本机现有的个人菜谱、收藏、菜篮、清单与皮肤设置将被替换；内置菜谱不受影响。")
+                .setNegativeButton("取消", null)
+                .setPositiveButton("确认恢复", (dialog, which) -> {
+                    if (!localBackupManager.restore(payload)) {
+                        showCloudError("恢复失败，本机原有数据已尝试保留");
+                        return;
+                    }
+                    localBackupManager.markRestored(System.currentTimeMillis());
+                    toast("个人数据已恢复");
+                    recreate();
+                })
+                .show();
+    }
+
+    private boolean ensureCloudBackupConfigured() {
+        if (cloudBackupClient != null && cloudBackupClient.isConfigured()) return true;
+        showCloudError("当前安装包未配置云备份");
+        return false;
+    }
+
+    private void showCloudProgress(String title, String message) {
+        dismissCloudProgress();
+        cloudProgressDialog = dialogBuilder()
+                .setTitle(title)
+                .setMessage(message)
+                .setCancelable(false)
+                .create();
+        cloudProgressDialog.show();
+    }
+
+    private void dismissCloudProgress() {
+        if (cloudProgressDialog != null && cloudProgressDialog.isShowing()) cloudProgressDialog.dismiss();
+        cloudProgressDialog = null;
+    }
+
+    private void showCloudError(String message) {
+        String detail = message == null || message.trim().isEmpty() ? "操作失败，请稍后重试" : message;
+        dialogBuilder()
+                .setTitle("云端备份未完成")
+                .setMessage(detail)
+                .setPositiveButton("知道了", null)
+                .show();
+    }
+
+    private String formatBackupTime(long time) {
+        return DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(new Date(time));
     }
 
     private View appearanceRow() {
@@ -2268,6 +2438,8 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onDestroy() {
+        dismissCloudProgress();
+        if (cloudBackupClient != null) cloudBackupClient.shutdown();
         if (remoteImageLoader != null) remoteImageLoader.close();
         super.onDestroy();
     }

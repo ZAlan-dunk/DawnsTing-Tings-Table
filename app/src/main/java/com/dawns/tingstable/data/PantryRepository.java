@@ -94,6 +94,25 @@ public class PantryRepository {
         return names;
     }
 
+    public boolean replaceItems(List<PantryItem> replacement) {
+        JSONArray array = new JSONArray();
+        Set<String> ids = new LinkedHashSet<>();
+        try {
+            if (replacement != null) {
+                for (PantryItem item : replacement) {
+                    if (item == null || item.id.isEmpty() || item.name.isEmpty() || !ids.add(item.id)) continue;
+                    array.put(item.copy().toJson());
+                }
+            }
+            return preferences.edit()
+                    .putString(KEY_PANTRY, array.toString())
+                    .putBoolean(KEY_MIGRATED, true)
+                    .commit();
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
     private void migrateSelectedIngredients() {
         if (preferences.getBoolean(KEY_MIGRATED, false)) return;
         List<PantryItem> items = getItems();
