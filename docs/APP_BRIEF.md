@@ -3,65 +3,57 @@
 ## Task
 
 - Date: 2026-08-11
-- Requested outcome: Add one-tap private cloud backup and confirmed restore so personal recipe data survives uninstall, non-coverable signature changes, or device replacement.
-- Primary user and context: One recipient per APK, using a local-first Android cooking utility without a GitHub login.
-- Non-goals: Accounts, automatic background sync, bundled-recipe upload, analytics, commercial modules, package-ID changes, or a UI redesign.
+- Requested outcome: Add cloud recipe collections, sequential standard numbering, key-gated custom collections, cuisine grouping, and local habit sorting without synchronizing personal settings.
+- Primary user and context: A small number of personal Android users who browse shared recipes without a GitHub or app account.
+- Non-goals: Social feeds, comments, analytics, advertising, automatic background sync, built-in-special migration, package-ID changes, or uploading personal settings.
 
 ## Project Boundary
 
 - Resolved project path: `D:\Agent\Githubstorage\DawnsTing-Tings-Table`
-- Workspace status: This exact external repository is explicitly authorized for implementation, build output, push, and release.
-- Repository owner/name: `ZAlan-dunk/DawnsTing-Tings-Table` (public)
-- Branch and upstream: `main` -> `origin/main`
-- Cloud comparison: Fetched on 2026-08-11; task-start `HEAD` matched `origin/main`. Three uncommitted backup files from the active task were preserved and reviewed.
+- Paired copy: `D:\Agent\Githubstorage\Dawnsdew-Lulu-s-Table`
+- Cloud repository: `ZAlan-dunk/Dawnsdew-Recipe-Cloud` remains the private recipe data store and Worker source repository.
+- Repository state: Both public app repositories started clean on `main` with `HEAD` matching `origin/main` after fetch.
 
 ## Stable Identity
 
 - Package ID and namespace: `com.dawns.tingstable`
 - Artifact base: `LazySheepChef`
 - Installed and in-app display name: `懒羊羊当大厨~`
-- Signing: Continue the Ting repository's existing release certificate.
-- Lulu rule: The paired repository keeps the same runtime app identity and behavior; only repository identity, APK filename, cloud profile, and its existing signing chain differ.
+- Signing: Continue each repository's existing independent release certificate.
+- Copy rule: Runtime behavior stays aligned; only repository identity, APK filename, sync profile, and signing chain differ.
 
 ## Experience
 
-- Primary flow: Open Home, tap Upload, wait for success, and verify the recent-upload time.
-- Restore flow: Tap Restore, download and validate the latest backup, inspect its time and summary, confirm replacement, then reopen Home with restored data.
-- Retained flows: Recipes, favorites, recipe editing, pantry, pantry matching, shopping list, specials, themes, source covers, and system Back behavior.
-- Visual direction: Preserve the existing pale/dark restrained system. Add one unframed compact data row with a familiar cloud icon and 48dp Upload/Restore actions.
-- Motion: Existing short press/page feedback only; network completion never depends on animation.
+- Primary flow: Open Home, enter Personal Recipe Collections, choose a numbered collection, and browse it using search, filters, cuisine groups, or habit sorting.
+- Creation flow: Fetch the cloud catalog, create a standard collection, receive its server-assigned number and one-time management recovery code, then upload existing custom recipes.
+- Protected flow: Enter a custom-collection key; the server returns only the matching protected collection and a scoped token.
+- Retained flows: Built-in recipes, local favorites, recipe editing, pantry, ingredient matching, shopping list, existing specials, themes, remote covers, and system Back behavior.
+- Visual direction: Preserve the restrained light/night system. Keep recipe content dominant and use compact 48dp icon actions instead of a persistent filter panel.
 
 ## Data Boundary
 
-- Local-first: Existing SharedPreferences remain authoritative during normal use.
-- Uploaded only on explicit action: Custom recipes, favorite IDs, pantry, shopping list, selected ingredients, and theme.
-- Excluded: Built-in recipes, Yunfeng catalog and image cache, device/account identifiers, logs, and app files.
-- Remote: Private GitHub repository, versioned JSON schema, maximum 900 KB, separate `tings` and `lulu` paths.
-- Credential: Fine-grained token restricted to that repository with Contents read/write, injected through encrypted GitHub Secrets into release builds and never committed.
-
-## Device Conditions
-
-- Target: Native Android Java, Android 8.0/API 26 and later, compact phones through tablets.
-- Input/layout: Touch, system font scaling up to 200%, light/night skins, status/navigation/IME insets.
-- Offline: All existing core flows remain usable. Cloud actions show a readable error and leave local data unchanged.
+- Synced: Collection ID, name, type, revision, timestamps, and custom recipes.
+- Local only: Theme, favorites, pantry, shopping list, selected ingredients, view mode, usage counts, last-opened times, and encrypted scoped tokens.
+- Legacy: Historical v0.6.6 files remain unchanged. The service imports `customRecipes` once and ignores every other legacy field.
+- Security: GitHub data credentials and custom keys remain server-side. The APK contains only the HTTPS API endpoint and encrypted scoped tokens issued by the service.
+- Offline: Cached collections remain readable; pending local edits remain marked until a later explicit sync.
 
 ## Acceptance Criteria
 
-- Given personal data exists, when Upload is tapped, then the corresponding profile file is created or replaced and Home shows the completion time.
-- Given an upload is in progress, when the request is pending, then a non-ambiguous progress state prevents duplicate actions.
-- Given a valid cloud backup exists, when Restore is tapped, then time and item summary appear before any local write.
-- Given the user cancels restore, when the dialog closes, then local data remains byte-for-byte unchanged.
-- Given restore is confirmed, when all writes succeed, then personal data and theme persist after Activity recreation while built-in recipes remain available.
-- Given network, authorization, profile, schema, size, or parsing validation fails, when the operation ends, then local data remains unchanged and a readable error is shown.
-- Given a write fails after restore begins, when rollback runs, then the pre-restore snapshot is attempted and failure is reported.
-- Given 200% font scale on a compact device, when Home renders, then both cloud actions and status remain reachable without covering other controls.
-- Given a non-Home page or Home double-Back flow, when system Back is used, then v0.6.5 behavior remains unchanged.
-- Given v0.6.5-Bata release is installed, when the matching v0.6.6-Bata release is installed, then package ID, increased version code, and unchanged repository-specific signature permit cover installation.
+- Given two concurrent standard-collection creations, when both complete, then each receives a unique `Dew-xxxx` number and occupied numbers are never reused.
+- Given same-name recipes have different UUIDs, when synchronized, then both remain present.
+- Given an unauthenticated catalog request, when protected collections exist, then their IDs, names, and recipes are absent.
+- Given a valid protected key, when unlock succeeds, then only that collection receives a scoped token and the key is not persisted by the app.
+- Given local and remote revisions differ, when sync runs, then local data remains intact until the user explicitly chooses the local or cloud version.
+- Given theme, favorite, pantry, shopping, selected ingredient, or usage history changes, when recipes sync, then those fields are absent from the request.
+- Given a compact screen at 200% font scale, when collection and recipe controls render, then all actions remain reachable and recipe content does not overlap.
+- Given the app is offline, when a cached collection is opened, then recipes remain readable and refresh failure is non-destructive.
+- Given v0.6.6-Bata release is installed, when the matching v0.6.7-Bata release is installed, then package ID, increased version code, and repository-specific certificate allow cover installation.
 
 ## Delivery
 
-- Version/tag: `v0.6.6-Bata`, `versionCode 13`, `versionName 0.6.6-Bata`
-- Artifact: `LazySheepChef-v0.6.6-Bata-release.apk`
-- Build output: Release APK only; no debug APK is generated or handed off.
-- Verification: Backup unit tests, existing unit tests, Debug/Release lint, release assembly, APK metadata, permission, token-presence, signature, API smoke, and retained-release inventory.
+- Version/tag: `v0.6.7-Bata`, `versionCode 14`, `versionName 0.6.7-Bata`
+- Artifact: `LazySheepChef-v0.6.7-Bata-release.apk`
+- Build output: Release APK only; no debug APK is generated, uploaded, or handed off.
+- Verification: Core unit tests, Worker tests, XML parsing, independent Android source compilation, full Android CI, Worker health/API checks, release signing, metadata, asset inventory, and published-download hash comparison.
 - Development memory: `docs/APP_DEVELOPMENT_MEMORY.md`

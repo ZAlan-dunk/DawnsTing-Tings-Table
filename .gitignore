@@ -5,6 +5,7 @@ Desktop.ini
 .idea/
 *.log
 .gradle/
+.gradle-user-home*/
 local.properties
 **/build/
 *.apk

@@ -48,15 +48,17 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.dawns.tingstable.data.PantryRepository;
-import com.dawns.tingstable.data.BackupPayload;
-import com.dawns.tingstable.data.GitHubBackupClient;
-import com.dawns.tingstable.data.LocalBackupManager;
+import com.dawns.tingstable.data.CollectionCredentialStore;
+import com.dawns.tingstable.data.RecipeCollectionApiClient;
+import com.dawns.tingstable.data.RecipeCollectionRepository;
 import com.dawns.tingstable.data.RecipeRepository;
+import com.dawns.tingstable.data.RecipeUsageRepository;
 import com.dawns.tingstable.data.SpecialRecipeCatalog;
 import com.dawns.tingstable.model.Ingredient;
 import com.dawns.tingstable.model.PantryItem;
 import com.dawns.tingstable.model.Recipe;
 import com.dawns.tingstable.model.RecipeBrowseState;
+import com.dawns.tingstable.model.RecipeCollection;
 import com.dawns.tingstable.model.BackNavigationState;
 import com.dawns.tingstable.model.SpecialCollection;
 import com.dawns.tingstable.model.SpecialRecipe;
@@ -64,7 +66,9 @@ import com.dawns.tingstable.model.ThemeMode;
 import com.dawns.tingstable.util.MotionSpec;
 import com.dawns.tingstable.util.RecipeCategories;
 import com.dawns.tingstable.util.RecipeCuisines;
+import com.dawns.tingstable.util.RecipeCuisineGroups;
 import com.dawns.tingstable.util.RecipeFilters;
+import com.dawns.tingstable.util.RecipeHistorySorter;
 import com.dawns.tingstable.util.RecipeMatcher;
 import com.dawns.tingstable.util.RemoteImageLoader;
 
@@ -108,8 +112,10 @@ public class MainActivity extends Activity {
 
     private RecipeRepository repository;
     private PantryRepository pantryRepository;
-    private LocalBackupManager localBackupManager;
-    private GitHubBackupClient cloudBackupClient;
+    private RecipeCollectionRepository collectionRepository;
+    private CollectionCredentialStore collectionCredentials;
+    private RecipeCollectionApiClient collectionApiClient;
+    private RecipeUsageRepository recipeUsageRepository;
     private RemoteImageLoader remoteImageLoader;
     private List<SpecialRecipe> yunfengRecipes;
     private FrameLayout root;
@@ -129,6 +135,7 @@ public class MainActivity extends Activity {
     private TextView recipeSummary;
     private ImageButton recipeSearchAction;
     private ImageButton recipeFilterAction;
+    private ImageButton recipeViewModeAction;
     private RecyclerView recipeList;
     private FrameLayout recipeResults;
     private View recipeEmpty;
@@ -138,6 +145,8 @@ public class MainActivity extends Activity {
     private String pantryFilter = "ALL";
     private String detailReturnPage = "RECIPES";
     private String currentSpecialId = "";
+    private String currentCollectionId = "";
+    private boolean collectionCreatePromptShown;
     private final BackNavigationState backNavigationState = new BackNavigationState();
     private long lastBackDispatchAt;
     private AlertDialog cloudProgressDialog;
@@ -160,6 +169,7 @@ public class MainActivity extends Activity {
     private String formCategory = RecipeCategories.STIR_FRY;
     private String formCuisine = RecipeCuisines.HOME_FUSION;
     private Recipe formExisting;
+    private String formCollectionId = "";
     private String formInitialSignature = "";
     private boolean formSaved;
 
@@ -169,13 +179,13 @@ public class MainActivity extends Activity {
         loadTheme();
         repository = new RecipeRepository(this);
         pantryRepository = new PantryRepository(this);
-        localBackupManager = new LocalBackupManager(this, repository, pantryRepository);
-        cloudBackupClient = new GitHubBackupClient(
-                BuildConfig.RECIPE_CLOUD_OWNER,
-                BuildConfig.RECIPE_CLOUD_REPOSITORY,
-                BuildConfig.RECIPE_CLOUD_PROFILE_ID,
-                BuildConfig.RECIPE_CLOUD_TOKEN
+        collectionRepository = new RecipeCollectionRepository(this);
+        collectionCredentials = new CollectionCredentialStore(this);
+        collectionApiClient = new RecipeCollectionApiClient(
+                BuildConfig.RECIPE_COLLECTION_API_URL,
+                BuildConfig.RECIPE_CLOUD_PROFILE_ID
         );
+        recipeUsageRepository = new RecipeUsageRepository(this);
         remoteImageLoader = new RemoteImageLoader(this);
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         getWindow().setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
@@ -409,6 +419,7 @@ public class MainActivity extends Activity {
     }
 
     private void showHome() {
+        currentCollectionId = "";
         LinearLayout body = pageBody();
         List<PantryItem> pantry = pantryRepository.getItems();
         int available = 0;
@@ -482,6 +493,8 @@ public class MainActivity extends Activity {
         actionRowTwo.addView(homeAction("特典菜谱", "云峰特典 · 150 道收藏", R.drawable.ic_home_special,
                 this::showSpecials), weighted());
         body.addView(actionRowTwo, spaced(16));
+        body.addView(homeWideAction("个人菜谱集", collectionHomeDescription(),
+                R.drawable.ic_home_collections, this::showRecipeCollections), spaced(10));
 
         LinearLayout quick = new LinearLayout(this);
         quick.setOrientation(LinearLayout.HORIZONTAL);
@@ -497,136 +510,75 @@ public class MainActivity extends Activity {
         shopping.setOnClickListener(v -> showShoppingList());
         quick.addView(shopping, weighted());
         body.addView(quick, spaced(12));
-        body.addView(cloudBackupRow(), spaced(4));
+        body.addView(recipeSyncRow(), spaced(4));
         body.addView(appearanceRow(), spaced(8));
 
         setPage("HOME", "今日厨房", null, scroll(body), true);
     }
 
-    private View cloudBackupRow() {
+    private View homeWideAction(String title, String description, int iconRes, Runnable action) {
+        LinearLayout row = new LinearLayout(this);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setMinimumHeight(dp(82));
+        row.setPadding(dp(14), dp(12), dp(12), dp(12));
+        row.setBackground(ripple(SURFACE, 18, CONTROL_LINE));
+        FrameLayout iconFrame = new FrameLayout(this);
+        iconFrame.setBackground(roundRect(CONTROL_SOFT, 13, Color.TRANSPARENT));
+        ImageView icon = new ImageView(this);
+        icon.setImageResource(iconRes);
+        icon.setImageTintList(ColorStateList.valueOf(CONTROL_INK));
+        icon.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        iconFrame.addView(icon, new FrameLayout.LayoutParams(dp(24), dp(24), Gravity.CENTER));
+        row.addView(iconFrame, new LinearLayout.LayoutParams(dp(48), dp(48)));
+        LinearLayout words = vertical();
+        words.setPadding(dp(13), 0, dp(8), 0);
+        words.addView(text(title, 16, INK, true));
+        words.addView(text(description, 12, MUTED, false));
+        row.addView(words, weighted());
+        ImageView arrow = new ImageView(this);
+        arrow.setImageResource(R.drawable.ic_action_chevron_right);
+        arrow.setImageTintList(ColorStateList.valueOf(MUTED));
+        arrow.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        row.addView(arrow, new LinearLayout.LayoutParams(dp(24), dp(24)));
+        row.setContentDescription(title + "，" + description);
+        row.setOnClickListener(v -> action.run());
+        MotionSpec.attachPress(row);
+        return row;
+    }
+
+    private String collectionHomeDescription() {
+        int count = collectionRepository == null ? 0 : collectionRepository.getCollections().size();
+        return count == 0 ? "创建或获取云端菜谱集" : "云端已有 " + count + " 个菜谱集";
+    }
+
+    private View recipeSyncRow() {
         LinearLayout row = new LinearLayout(this);
         row.setGravity(Gravity.CENTER_VERTICAL);
         row.setPadding(dp(4), dp(2), dp(2), dp(2));
-
         ImageView icon = new ImageView(this);
         icon.setImageResource(R.drawable.ic_action_cloud);
         icon.setImageTintList(ColorStateList.valueOf(JADE));
         icon.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
         row.addView(icon, new LinearLayout.LayoutParams(dp(28), dp(28)));
-
         LinearLayout copy = vertical();
-        copy.setPadding(dp(10), 0, dp(6), 0);
-        copy.addView(text("云端备份", 14, INK, true));
-        copy.addView(text(cloudBackupStatus(), 12, MUTED, false));
+        copy.setPadding(dp(10), 0, dp(8), 0);
+        copy.addView(text("菜谱同步", 14, INK, true));
+        copy.addView(text(collectionSyncStatus(), 12, MUTED, false));
         row.addView(copy, weighted());
-
-        Button restore = outlineButton("恢复");
-        restore.setContentDescription("查看并恢复云端备份");
-        restore.setOnClickListener(v -> restoreCloudBackup());
-        row.addView(restore, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(48)));
-        addGap(row, 6);
-
-        Button upload = primaryButton("上传");
-        upload.setContentDescription("立即上传个人数据备份");
-        upload.setOnClickListener(v -> uploadCloudBackup());
-        row.addView(upload, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(48)));
-
-        boolean configured = cloudBackupClient != null && cloudBackupClient.isConfigured();
-        restore.setEnabled(configured);
-        upload.setEnabled(configured);
-        if (!configured) {
-            restore.setAlpha(0.5f);
-            upload.setAlpha(0.5f);
-        }
+        Button action = outlineButton("同步");
+        action.setContentDescription("同步云端菜谱集");
+        action.setOnClickListener(v -> refreshRecipeCollections(true));
+        boolean configured = collectionApiClient != null && collectionApiClient.isConfigured();
+        action.setEnabled(configured);
+        if (!configured) action.setAlpha(0.5f);
+        row.addView(action, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(48)));
         return row;
     }
 
-    private String cloudBackupStatus() {
-        if (cloudBackupClient == null || !cloudBackupClient.isConfigured()) return "云备份暂不可用";
-        long uploaded = localBackupManager.lastUploadAt();
-        long restored = localBackupManager.lastRestoreAt();
-        if (uploaded <= 0L && restored <= 0L) return "尚未上传备份";
-        if (uploaded >= restored) return "最近上传 " + formatBackupTime(uploaded);
-        return "最近恢复 " + formatBackupTime(restored);
-    }
-
-    private void uploadCloudBackup() {
-        if (!ensureCloudBackupConfigured()) return;
-        try {
-            BackupPayload payload = localBackupManager.capture(
-                    BuildConfig.RECIPE_CLOUD_PROFILE_ID,
-                    BuildConfig.VERSION_NAME,
-                    System.currentTimeMillis()
-            );
-            String raw = payload.toJson().toString();
-            showCloudProgress("正在上传", "正在保存个人菜谱数据…");
-            cloudBackupClient.upload(raw, new GitHubBackupClient.Callback<Long>() {
-                @Override
-                public void onSuccess(Long completedAt) {
-                    dismissCloudProgress();
-                    localBackupManager.markUploaded(completedAt);
-                    toast("云端备份已更新");
-                    if ("HOME".equals(currentPage)) showHome();
-                }
-
-                @Override
-                public void onError(String message) {
-                    dismissCloudProgress();
-                    showCloudError(message);
-                }
-            });
-        } catch (Exception error) {
-            dismissCloudProgress();
-            showCloudError(error.getMessage());
-        }
-    }
-
-    private void restoreCloudBackup() {
-        if (!ensureCloudBackupConfigured()) return;
-        showCloudProgress("正在读取", "正在获取最近的云端备份…");
-        cloudBackupClient.download(new GitHubBackupClient.Callback<String>() {
-            @Override
-            public void onSuccess(String raw) {
-                dismissCloudProgress();
-                try {
-                    BackupPayload payload = localBackupManager.parse(raw, BuildConfig.RECIPE_CLOUD_PROFILE_ID);
-                    showRestoreConfirmation(payload);
-                } catch (Exception error) {
-                    showCloudError(error.getMessage());
-                }
-            }
-
-            @Override
-            public void onError(String message) {
-                dismissCloudProgress();
-                showCloudError(message);
-            }
-        });
-    }
-
-    private void showRestoreConfirmation(BackupPayload payload) {
-        String time = payload.createdAt > 0L ? formatBackupTime(payload.createdAt) : "时间未知";
-        dialogBuilder()
-                .setTitle("恢复这份备份？")
-                .setMessage("备份时间：" + time + "\n" + payload.summary()
-                        + "\n\n本机现有的个人菜谱、收藏、菜篮、清单与皮肤设置将被替换；内置菜谱不受影响。")
-                .setNegativeButton("取消", null)
-                .setPositiveButton("确认恢复", (dialog, which) -> {
-                    if (!localBackupManager.restore(payload)) {
-                        showCloudError("恢复失败，本机原有数据已尝试保留");
-                        return;
-                    }
-                    localBackupManager.markRestored(System.currentTimeMillis());
-                    toast("个人数据已恢复");
-                    recreate();
-                })
-                .show();
-    }
-
-    private boolean ensureCloudBackupConfigured() {
-        if (cloudBackupClient != null && cloudBackupClient.isConfigured()) return true;
-        showCloudError("当前安装包未配置云备份");
-        return false;
+    private String collectionSyncStatus() {
+        if (collectionApiClient == null || !collectionApiClient.isConfigured()) return "菜谱集服务尚未配置";
+        long synced = collectionRepository.lastSyncAt();
+        return synced <= 0L ? "尚未同步云端菜谱" : "最近同步 " + formatBackupTime(synced);
     }
 
     private void showCloudProgress(String title, String message) {
@@ -647,7 +599,7 @@ public class MainActivity extends Activity {
     private void showCloudError(String message) {
         String detail = message == null || message.trim().isEmpty() ? "操作失败，请稍后重试" : message;
         dialogBuilder()
-                .setTitle("云端备份未完成")
+                .setTitle("云端操作未完成")
                 .setMessage(detail)
                 .setPositiveButton("知道了", null)
                 .show();
@@ -655,6 +607,548 @@ public class MainActivity extends Activity {
 
     private String formatBackupTime(long time) {
         return DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(new Date(time));
+    }
+
+    private void showRecipeCollections() {
+        collectionCreatePromptShown = false;
+        renderRecipeCollections(true);
+    }
+
+    private void renderRecipeCollections(boolean refresh) {
+        currentCollectionId = "";
+        LinearLayout body = pageBody();
+        LinearLayout heading = new LinearLayout(this);
+        heading.setGravity(Gravity.CENTER_VERTICAL);
+        LinearLayout words = vertical();
+        words.addView(text("个人菜谱集", 25, INK, true));
+        words.addView(text("选择编号菜谱集后翻看其中的菜谱。", 13, MUTED, false));
+        heading.addView(words, weighted());
+        ImageButton sync = iconButton(R.drawable.ic_action_cloud, "刷新云端菜谱集", false);
+        sync.setOnClickListener(v -> refreshRecipeCollections(true));
+        heading.addView(sync, new LinearLayout.LayoutParams(dp(48), dp(48)));
+        body.addView(heading, spaced(14));
+
+        List<RecipeCollection> collections = collectionRepository.getCollections();
+        if (collections.isEmpty()) {
+            View empty = emptyState("还没有菜谱集", "创建普通菜谱集，或输入密钥解锁定制特典。");
+            empty.setOnClickListener(v -> showCreateCollectionDialog());
+            MotionSpec.attachPress(empty);
+            body.addView(empty, spaced(18));
+        } else {
+            for (RecipeCollection collection : collections) {
+                body.addView(recipeCollectionCard(collection), spaced(10));
+            }
+        }
+
+        LinearLayout actions = new LinearLayout(this);
+        actions.setGravity(Gravity.CENTER_VERTICAL);
+        Button unlock = outlineButton("输入特典密钥");
+        unlock.setOnClickListener(v -> showSpecialKeyDialog());
+        actions.addView(unlock, weighted());
+        addGap(actions, 10);
+        Button create = primaryButton("新建菜谱集");
+        create.setOnClickListener(v -> showCreateCollectionDialog());
+        actions.addView(create, weighted());
+        body.addView(actions, spaced(18));
+        Button recover = textButton("恢复已有菜谱集编辑权", false);
+        recover.setOnClickListener(v -> showCollectionRecoveryDialog());
+        body.addView(recover, spaced(6));
+        body.addView(text("普通菜谱集可被其他使用者读取；个人设置与使用记录只保存在本机。",
+                12, MUTED, false), spaced(8));
+
+        setPage("COLLECTIONS", "菜谱集", this::showHome, scroll(body), false);
+        if (refresh) refreshRecipeCollections(false);
+    }
+
+    private View recipeCollectionCard(RecipeCollection collection) {
+        LinearLayout card = vertical();
+        card.setPadding(dp(17), dp(15), dp(12), dp(13));
+        card.setBackground(ripple(SURFACE, 17, CONTROL_LINE));
+        LinearLayout top = new LinearLayout(this);
+        top.setGravity(Gravity.CENTER_VERTICAL);
+        TextView number = text(collection.id, 12, CONTROL_INK, true);
+        number.setPadding(dp(9), dp(5), dp(9), dp(5));
+        number.setBackground(roundRect(CONTROL_SOFT, 10, Color.TRANSPARENT));
+        top.addView(number);
+        addGap(top, 10);
+        top.addView(text(collection.name, 17, INK, true), weighted());
+        if (collectionCredentials.has(collection.id)) {
+            Button rename = textButton("改名", false);
+            rename.setContentDescription("修改菜谱集名称：" + collection.name);
+            rename.setOnClickListener(v -> showRenameCollectionDialog(collection));
+            top.addView(rename, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(48)));
+        }
+        card.addView(top);
+        String type = RecipeCollection.TYPE_SPECIAL.equals(collection.type) ? "定制特典" : "普通菜谱集";
+        String access = collectionCredentials.has(collection.id) ? "可编辑" : "只读";
+        String syncState = collectionRepository.isDirty(collection.id) ? " · 待同步" : "";
+        TextView detail = text(type + " · " + collection.recipes.size() + " 道 · " + access + syncState,
+                12, MUTED, false);
+        detail.setPadding(0, dp(9), 0, 0);
+        card.addView(detail);
+        card.setContentDescription(collection.id + "，" + collection.name + "，"
+                + collection.recipes.size() + " 道菜谱，" + access);
+        card.setOnClickListener(v -> openRecipeCollection(collection));
+        MotionSpec.attachPress(card);
+        return card;
+    }
+
+    private void refreshRecipeCollections(boolean userInitiated) {
+        if (collectionApiClient == null || !collectionApiClient.isConfigured()) {
+            if (userInitiated) showCloudError("菜谱集服务尚未配置");
+            return;
+        }
+        List<RecipeCollection> pending = new ArrayList<>();
+        for (RecipeCollection collection : collectionRepository.getCollections()) {
+            if (collectionRepository.isDirty(collection.id)) pending.add(collection);
+        }
+        if (!pending.isEmpty()) {
+            if (userInitiated) showCloudProgress("正在同步", "正在上传本机菜谱修改…");
+            pushPendingCollections(pending, 0, userInitiated);
+            return;
+        }
+        fetchCollectionCatalog(userInitiated);
+    }
+
+    private void pushPendingCollections(List<RecipeCollection> pending, int index,
+                                        boolean userInitiated) {
+        if (index >= pending.size()) {
+            fetchCollectionCatalog(userInitiated);
+            return;
+        }
+        RecipeCollection collection = pending.get(index);
+        String token = collectionCredentials.get(collection.id);
+        if (token.isEmpty()) {
+            dismissCloudProgress();
+            showCloudError("缺少 " + collection.id + " 的编辑权限，本机修改仍已保留");
+            return;
+        }
+        collectionApiClient.save(collection, token, new RecipeCollectionApiClient.Callback<RecipeCollection>() {
+            @Override
+            public void onSuccess(RecipeCollection value) {
+                collectionRepository.saveCollection(value);
+                collectionRepository.markClean(value.id);
+                pushPendingCollections(pending, index + 1, userInitiated);
+            }
+
+            @Override public void onError(String message) {
+                dismissCloudProgress();
+                if ("VERSION_CONFLICT".equals(message)) {
+                    showCollectionConflict(collection, null);
+                } else {
+                    showCloudError("本机修改仍已保留，云端同步失败：" + message);
+                }
+            }
+        });
+    }
+
+    private void fetchCollectionCatalog(boolean userInitiated) {
+        if (userInitiated) showCloudProgress("正在同步", "正在获取云端菜谱集…");
+        collectionApiClient.list(new RecipeCollectionApiClient.Callback<List<RecipeCollection>>() {
+            @Override
+            public void onSuccess(List<RecipeCollection> value) {
+                dismissCloudProgress();
+                collectionRepository.mergeCatalog(value);
+                collectionRepository.markSynced(System.currentTimeMillis());
+                if ("HOME".equals(currentPage)) showHome();
+                else if ("COLLECTIONS".equals(currentPage)) {
+                    renderRecipeCollections(false);
+                    if (!collectionCreatePromptShown && !hasEditableCollection()) {
+                        collectionCreatePromptShown = true;
+                        showCreateCollectionDialog();
+                    }
+                }
+                if (userInitiated) toast("菜谱集已同步");
+            }
+
+            @Override
+            public void onError(String message) {
+                dismissCloudProgress();
+                if (userInitiated || collectionRepository.getCollections().isEmpty()) showCloudError(message);
+                else toast("暂时无法刷新，已显示本机缓存");
+            }
+        });
+    }
+
+    private boolean hasEditableCollection() {
+        for (RecipeCollection collection : collectionRepository.getCollections()) {
+            if (collectionCredentials.has(collection.id)) return true;
+        }
+        return false;
+    }
+
+    private List<RecipeCollection> editableCollections() {
+        List<RecipeCollection> result = new ArrayList<>();
+        for (RecipeCollection collection : collectionRepository.getCollections()) {
+            if (collectionCredentials.has(collection.id)) result.add(collection);
+        }
+        return result;
+    }
+
+    private void startNewRecipe() {
+        RecipeCollection active = activeCollection();
+        if (active != null) {
+            if (collectionCredentials.has(active.id)) showRecipeForm(null);
+            else showCloudError("这个菜谱集当前为只读");
+            return;
+        }
+        List<RecipeCollection> editable = editableCollections();
+        if (editable.isEmpty()) {
+            dialogBuilder()
+                    .setTitle("先创建菜谱集")
+                    .setMessage("新建的个人菜谱需要放入一个编号菜谱集。")
+                    .setNegativeButton("取消", null)
+                    .setPositiveButton("去创建", (dialog, which) -> {
+                        renderRecipeCollections(true);
+                        collectionCreatePromptShown = true;
+                        showCreateCollectionDialog();
+                    }).show();
+            return;
+        }
+        if (editable.size() == 1) {
+            currentCollectionId = editable.get(0).id;
+            showRecipeForm(null);
+            return;
+        }
+        String[] labels = new String[editable.size()];
+        for (int i = 0; i < editable.size(); i++) {
+            labels[i] = editable.get(i).id + " · " + editable.get(i).name;
+        }
+        dialogBuilder()
+                .setTitle("选择菜谱集")
+                .setItems(labels, (dialog, which) -> {
+                    currentCollectionId = editable.get(which).id;
+                    showRecipeForm(null);
+                })
+                .setNegativeButton("取消", null)
+                .show();
+    }
+
+    private void showCreateCollectionDialog() {
+        EditText name = input("例如：我的家常小馆");
+        LinearLayout form = dialogBody();
+        form.addView(labeled("菜谱集名称", name));
+        AlertDialog dialog = dialogBuilder()
+                .setTitle("创建普通菜谱集")
+                .setView(form)
+                .setNegativeButton("取消", null)
+                .setPositiveButton("创建", null)
+                .create();
+        dialog.setOnShowListener(ignored -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+            String value = name.getText().toString().trim();
+            if (value.isEmpty()) { name.setError("请输入菜谱集名称"); return; }
+            dialog.dismiss();
+            createRecipeCollection(value);
+        }));
+        dialog.show();
+    }
+
+    private void createRecipeCollection(String name) {
+        if (collectionApiClient == null || !collectionApiClient.isConfigured()) {
+            showCloudError("菜谱集服务尚未配置");
+            return;
+        }
+        showCloudProgress("正在创建", "正在从云端分配连续编号…");
+        List<Recipe> initialRecipes = hasEditableCollection()
+                ? Collections.emptyList() : repository.getCustomRecipes();
+        collectionApiClient.create(name, initialRecipes,
+                new RecipeCollectionApiClient.Callback<RecipeCollectionApiClient.AccessResult>() {
+            @Override
+            public void onSuccess(RecipeCollectionApiClient.AccessResult value) {
+                dismissCloudProgress();
+                acceptCollectionAccess(value);
+                String message = "菜谱集 " + value.collection.id + " 已创建";
+                if (!value.recoveryCode.isEmpty()) {
+                    dialogBuilder().setTitle(message)
+                            .setMessage("管理恢复码：" + value.recoveryCode
+                                    + "\n\n请妥善保管；卸载后需要它重新取得编辑权限。")
+                            .setPositiveButton("知道了", (dialog, which) -> showCollectionRecipes(value.collection))
+                            .show();
+                } else {
+                    toast(message);
+                    showCollectionRecipes(value.collection);
+                }
+            }
+
+            @Override public void onError(String message) {
+                dismissCloudProgress();
+                showCloudError(message);
+            }
+                });
+    }
+
+    private void showSpecialKeyDialog() {
+        EditText key = input("输入特典密钥");
+        key.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        LinearLayout form = dialogBody();
+        form.addView(labeled("特典密钥", key));
+        AlertDialog dialog = dialogBuilder()
+                .setTitle("解锁定制特典")
+                .setView(form)
+                .setNegativeButton("取消", null)
+                .setPositiveButton("验证", null)
+                .create();
+        dialog.setOnShowListener(ignored -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+            String value = key.getText().toString();
+            if (value.trim().isEmpty()) { key.setError("请输入特典密钥"); return; }
+            dialog.dismiss();
+            unlockSpecialCollection(value);
+        }));
+        dialog.show();
+    }
+
+    private void unlockSpecialCollection(String key) {
+        if (collectionApiClient == null || !collectionApiClient.isConfigured()) {
+            showCloudError("菜谱集服务尚未配置");
+            return;
+        }
+        showCloudProgress("正在验证", "正在获取定制特典…");
+        collectionApiClient.unlockSpecial(key,
+                new RecipeCollectionApiClient.Callback<RecipeCollectionApiClient.AccessResult>() {
+                    @Override
+                    public void onSuccess(RecipeCollectionApiClient.AccessResult value) {
+                        dismissCloudProgress();
+                        acceptCollectionAccess(value);
+                        toast("已解锁 " + value.collection.name);
+                        showCollectionRecipes(value.collection);
+                    }
+
+                    @Override public void onError(String message) {
+                        dismissCloudProgress();
+                        showCloudError(message);
+                    }
+                });
+    }
+
+    private void showCollectionRecoveryDialog() {
+        LinearLayout form = dialogBody();
+        EditText number = input("例如：Dew-0001");
+        EditText code = input("管理恢复码");
+        code.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        form.addView(labeled("菜谱集编号", number));
+        form.addView(labeled("管理恢复码", code), spaced(8));
+        AlertDialog dialog = dialogBuilder()
+                .setTitle("恢复编辑权限")
+                .setView(form)
+                .setNegativeButton("取消", null)
+                .setPositiveButton("恢复", null)
+                .create();
+        dialog.setOnShowListener(ignored -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+            String id = number.getText().toString().trim();
+            String value = code.getText().toString().trim();
+            if (id.isEmpty()) { number.setError("请输入菜谱集编号"); return; }
+            if (value.isEmpty()) { code.setError("请输入管理恢复码"); return; }
+            dialog.dismiss();
+            recoverCollectionAccess(id, value);
+        }));
+        dialog.show();
+    }
+
+    private void recoverCollectionAccess(String collectionId, String recoveryCode) {
+        if (collectionApiClient == null || !collectionApiClient.isConfigured()) {
+            showCloudError("菜谱集服务尚未配置");
+            return;
+        }
+        showCloudProgress("正在验证", "正在恢复菜谱集编辑权限…");
+        collectionApiClient.recover(collectionId, recoveryCode,
+                new RecipeCollectionApiClient.Callback<RecipeCollectionApiClient.AccessResult>() {
+                    @Override public void onSuccess(RecipeCollectionApiClient.AccessResult value) {
+                        dismissCloudProgress();
+                        acceptCollectionAccess(value);
+                        toast("已恢复 " + value.collection.id + " 的编辑权限");
+                        showCollectionRecipes(value.collection);
+                    }
+
+                    @Override public void onError(String message) {
+                        dismissCloudProgress();
+                        showCloudError(message);
+                    }
+                });
+    }
+
+    private void acceptCollectionAccess(RecipeCollectionApiClient.AccessResult value) {
+        collectionCredentials.save(value.collection.id, value.accessToken);
+        collectionRepository.saveCollection(value.collection);
+        collectionRepository.markClean(value.collection.id);
+        collectionRepository.markSynced(System.currentTimeMillis());
+    }
+
+    private void showRenameCollectionDialog(RecipeCollection collection) {
+        EditText name = input("菜谱集名称");
+        name.setText(collection.name);
+        LinearLayout form = dialogBody();
+        form.addView(labeled("新名称", name));
+        AlertDialog dialog = dialogBuilder()
+                .setTitle("修改菜谱集名称")
+                .setView(form)
+                .setNegativeButton("取消", null)
+                .setPositiveButton("保存", null)
+                .create();
+        dialog.setOnShowListener(ignored -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+            String value = name.getText().toString().trim();
+            if (value.isEmpty()) { name.setError("请输入菜谱集名称"); return; }
+            dialog.dismiss();
+            saveCollectionRemote(collection.withName(value, collection.revision, System.currentTimeMillis()),
+                    "菜谱集名称已更新");
+        }));
+        dialog.show();
+    }
+
+    private void openRecipeCollection(RecipeCollection collection) {
+        showCollectionRecipes(collection);
+        if (collectionRepository.isDirty(collection.id)) {
+            toast("正在显示本机待同步内容");
+            return;
+        }
+        if (collectionApiClient == null || !collectionApiClient.isConfigured()) return;
+        collectionApiClient.get(collection.id, collectionCredentials.get(collection.id),
+                new RecipeCollectionApiClient.Callback<RecipeCollection>() {
+                    @Override
+                    public void onSuccess(RecipeCollection value) {
+                        collectionRepository.saveCollection(value);
+                        collectionRepository.markClean(value.id);
+                        collectionRepository.markSynced(System.currentTimeMillis());
+                        if ("COLLECTION_RECIPES".equals(currentPage)
+                                && value.id.equals(currentCollectionId)) showCollectionRecipes(value);
+                    }
+
+                    @Override public void onError(String message) {
+                        if (collection.recipes.isEmpty()) showCloudError(message);
+                        else toast("暂时无法刷新，已显示本机缓存");
+                    }
+                });
+    }
+
+    private void saveCollectionRemote(RecipeCollection collection, String successMessage) {
+        collectionRepository.saveCollection(collection);
+        collectionRepository.markDirty(collection.id);
+        String token = collectionCredentials.get(collection.id);
+        if (token.isEmpty()) {
+            showCloudError("修改已保存在本机，但当前设备没有这个菜谱集的编辑权限");
+            return;
+        }
+        showCloudProgress("正在同步", "正在更新 " + collection.id + "…");
+        collectionApiClient.save(collection, token, new RecipeCollectionApiClient.Callback<RecipeCollection>() {
+            @Override
+            public void onSuccess(RecipeCollection value) {
+                dismissCloudProgress();
+                collectionRepository.saveCollection(value);
+                collectionRepository.markClean(value.id);
+                collectionRepository.markSynced(System.currentTimeMillis());
+                toast(successMessage);
+                if ("COLLECTIONS".equals(currentPage)) renderRecipeCollections(false);
+                else showCollectionRecipes(value);
+            }
+
+            @Override public void onError(String message) {
+                dismissCloudProgress();
+                if ("VERSION_CONFLICT".equals(message)) showCollectionConflict(collection, null);
+                else showCloudError("修改已保存在本机，但云端同步失败：" + message);
+            }
+        });
+    }
+
+    private void syncRecipeCollectionChange(RecipeCollection changed, Recipe savedRecipe,
+                                            String successMessage) {
+        String token = collectionCredentials.get(changed.id);
+        collectionRepository.markDirty(changed.id);
+        if (collectionApiClient == null || !collectionApiClient.isConfigured() || token.isEmpty()) {
+            showCloudError("菜谱已保存在本机，但当前无法同步到云端");
+            showCollectionRecipes(changed);
+            return;
+        }
+        showCloudProgress("正在同步", "正在更新 " + changed.id + "…");
+        collectionApiClient.save(changed, token, new RecipeCollectionApiClient.Callback<RecipeCollection>() {
+            @Override
+            public void onSuccess(RecipeCollection value) {
+                dismissCloudProgress();
+                collectionRepository.saveCollection(value);
+                collectionRepository.markClean(value.id);
+                collectionRepository.markSynced(System.currentTimeMillis());
+                toast(successMessage);
+                currentCollectionId = value.id;
+                if (savedRecipe == null) {
+                    showCollectionRecipes(value);
+                    return;
+                }
+                Recipe result = null;
+                for (Recipe recipe : value.recipes) {
+                    if (recipe.id.equals(savedRecipe.id)) { result = recipe; break; }
+                }
+                openRecipeDetail(result == null ? savedRecipe : result, "COLLECTION_RECIPES");
+            }
+
+            @Override
+            public void onError(String message) {
+                dismissCloudProgress();
+                if ("VERSION_CONFLICT".equals(message)) {
+                    showCollectionConflict(changed, savedRecipe);
+                } else {
+                    showCloudError("菜谱已保存在本机，但云端同步失败：" + message);
+                    showCollectionRecipes(changed);
+                }
+            }
+        });
+    }
+
+    private void showCollectionConflict(RecipeCollection local, Recipe savedRecipe) {
+        dialogBuilder()
+                .setTitle("菜谱集存在新版本")
+                .setMessage("云端已被其他设备更新。本机修改仍然保留，请选择要使用的版本。")
+                .setNegativeButton("使用云端", (dialog, which) -> {
+                    collectionApiClient.get(local.id, collectionCredentials.get(local.id),
+                            new RecipeCollectionApiClient.Callback<RecipeCollection>() {
+                                @Override public void onSuccess(RecipeCollection value) {
+                                    collectionRepository.saveCollection(value);
+                                    collectionRepository.markClean(value.id);
+                                    collectionRepository.markSynced(System.currentTimeMillis());
+                                    showCollectionRecipes(value);
+                                }
+
+                                @Override public void onError(String message) { showCloudError(message); }
+                            });
+                })
+                .setPositiveButton("保留本机", (dialog, which) -> forceSaveCollection(local, savedRecipe))
+                .show();
+    }
+
+    private void forceSaveCollection(RecipeCollection local, Recipe savedRecipe) {
+        showCloudProgress("正在同步", "正在使用本机版本更新云端…");
+        collectionApiClient.forceSave(local, collectionCredentials.get(local.id),
+                new RecipeCollectionApiClient.Callback<RecipeCollection>() {
+                    @Override public void onSuccess(RecipeCollection value) {
+                        dismissCloudProgress();
+                        collectionRepository.saveCollection(value);
+                        collectionRepository.markClean(value.id);
+                        collectionRepository.markSynced(System.currentTimeMillis());
+                        toast("已使用本机版本更新云端");
+                        if (savedRecipe == null) showCollectionRecipes(value);
+                        else openRecipeDetail(savedRecipe, "COLLECTION_RECIPES");
+                    }
+
+                    @Override public void onError(String message) {
+                        dismissCloudProgress();
+                        showCloudError("本机修改仍已保留：" + message);
+                    }
+                });
+    }
+
+    private RecipeCollection activeCollection() {
+        return currentCollectionId.isEmpty() ? null : collectionRepository.findById(currentCollectionId);
+    }
+
+    private List<Recipe> recipeSource() {
+        RecipeCollection collection = activeCollection();
+        return collection == null ? repository.getAllRecipes() : new ArrayList<>(collection.recipes);
+    }
+
+    private Recipe findRecipeById(String id) {
+        Recipe local = repository.findById(id);
+        if (local != null) return local;
+        for (RecipeCollection collection : collectionRepository.getCollections()) {
+            for (Recipe recipe : collection.recipes) if (recipe.id.equals(id)) return recipe;
+        }
+        return null;
     }
 
     private View appearanceRow() {
@@ -719,6 +1213,18 @@ public class MainActivity extends Activity {
     }
 
     private void showRecipes(String scope) {
+        currentCollectionId = "";
+        showRecipeBrowser(scope);
+    }
+
+    private void showCollectionRecipes(RecipeCollection collection) {
+        if (collection == null) return;
+        currentCollectionId = collection.id;
+        recipeState.setScope(RecipeBrowseState.SCOPE_ALL);
+        showRecipeBrowser(RecipeBrowseState.SCOPE_ALL);
+    }
+
+    private void showRecipeBrowser(String scope) {
         boolean scopeChanged = !Objects.equals(scope, recipeState.getScope());
         if (scopeChanged) {
             recipeScrollPosition = 0;
@@ -749,8 +1255,20 @@ public class MainActivity extends Activity {
         });
         header.addView(recipeFilterAction, new LinearLayout.LayoutParams(dp(48), dp(48)));
 
+        recipeViewModeAction = iconButton(R.drawable.ic_action_category, "切换到菜系分类模式", false);
+        recipeViewModeAction.setOnClickListener(v -> {
+            recipeState.toggleViewMode();
+            resetRecipeScrollToTop();
+            renderRecipeResults(true);
+        });
+        header.addView(recipeViewModeAction, new LinearLayout.LayoutParams(dp(48), dp(48)));
+
         ImageButton add = iconButton(R.drawable.ic_action_add, "新增自定义菜谱", false);
-        add.setOnClickListener(v -> showRecipeForm(null));
+        add.setOnClickListener(v -> startNewRecipe());
+        RecipeCollection active = activeCollection();
+        boolean canAdd = active == null || collectionCredentials.has(active.id);
+        add.setEnabled(canAdd);
+        if (!canAdd) add.setAlpha(0.45f);
         header.addView(add, new LinearLayout.LayoutParams(dp(48), dp(48)));
         page.addView(header, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
@@ -798,7 +1316,11 @@ public class MainActivity extends Activity {
                 0,
                 1f
         ));
-        setPage("RECIPES", "菜谱", null, page, true);
+        RecipeCollection collection = activeCollection();
+        setPage(collection == null ? "RECIPES" : "COLLECTION_RECIPES",
+                collection == null ? "菜谱" : collection.name,
+                collection == null ? null : this::showRecipeCollections,
+                page, collection == null);
         renderRecipeResults(false);
         restoreRecipeScrollPosition();
     }
@@ -807,12 +1329,19 @@ public class MainActivity extends Activity {
         if (recipeResults == null || recipeListAdapter == null) return;
         Runnable update = () -> {
             Set<String> favorites = repository.getFavorites();
-            List<Recipe> filtered = RecipeFilters.filter(repository.getAllRecipes(), favorites, recipeState);
+            List<Recipe> filtered = RecipeFilters.filter(recipeSource(), favorites, recipeState);
+            if (RecipeBrowseState.SORT_HABIT.equals(recipeState.getSortMode())) {
+                filtered = RecipeHistorySorter.sort(filtered, recipeUsageRepository.getAll());
+            }
             recipeSummary.setText(filtered.size() + " 道 · " + recipeState.compactSummary());
             boolean queryActive = recipeState.hasActiveQuery();
-            boolean facetsActive = recipeState.activeFilterCount() > 0;
+            int filterCount = recipeState.activeFilterCount()
+                    + (RecipeBrowseState.SORT_HABIT.equals(recipeState.getSortMode()) ? 1 : 0);
+            boolean facetsActive = filterCount > 0;
             styleIconButton(recipeSearchAction, queryActive);
             styleIconButton(recipeFilterAction, facetsActive);
+            boolean grouped = RecipeBrowseState.VIEW_CUISINE.equals(recipeState.getViewMode());
+            styleIconButton(recipeViewModeAction, grouped);
             recipeSearchAction.setContentDescription(queryActive
                     ? "搜索菜谱，当前关键词：" + recipeState.getQuery()
                     : "搜索菜谱");
@@ -820,12 +1349,15 @@ public class MainActivity extends Activity {
             ViewCompat.setStateDescription(recipeSearchAction,
                     queryActive ? "已输入搜索词" : "无搜索词");
             recipeFilterAction.setContentDescription(facetsActive
-                    ? "筛选菜谱，已选择 " + recipeState.activeFilterCount() + " 项条件"
+                    ? "筛选和排序菜谱，已选择 " + filterCount + " 项条件"
                     : "筛选菜谱");
             recipeFilterAction.setTooltipText(recipeFilterAction.getContentDescription());
             ViewCompat.setStateDescription(recipeFilterAction,
                     facetsActive ? "有筛选条件" : "无筛选条件");
-            recipeListAdapter.submitRecipes(filtered, favorites);
+            recipeViewModeAction.setContentDescription(grouped ? "切换到列表模式" : "切换到菜系分类模式");
+            recipeViewModeAction.setTooltipText(recipeViewModeAction.getContentDescription());
+            ViewCompat.setStateDescription(recipeViewModeAction, grouped ? "当前为菜系分类模式" : "当前为列表模式");
+            recipeListAdapter.submitRecipes(filtered, favorites, grouped);
             recipeList.setVisibility(filtered.isEmpty() ? View.GONE : View.VISIBLE);
             recipeEmpty.setVisibility(filtered.isEmpty() ? View.VISIBLE : View.GONE);
         };
@@ -874,6 +1406,7 @@ public class MainActivity extends Activity {
         String[] cuisine = { recipeState.getCuisine() };
         String[] method = { RecipeCategories.ALL.equals(recipeState.getCookingMethod())
                 ? "全部做法" : recipeState.getCookingMethod() };
+        String[] sort = { recipeState.sortLabel() };
 
         LinearLayout body = vertical();
         body.addView(sheetLabel("菜谱范围"));
@@ -886,6 +1419,8 @@ public class MainActivity extends Activity {
             methodLabels.add(RecipeCategories.ALL.equals(value) ? "全部做法" : value);
         }
         body.addView(choiceRow(methodLabels.toArray(new String[0]), method));
+        body.addView(sheetLabel("排序"), spaced(14));
+        body.addView(choiceRow(new String[] { "默认顺序", "习惯排序" }, sort));
 
         ScrollView scroll = scroll(body);
         showBottomSheet("筛选菜谱", scroll, true,
@@ -893,6 +1428,7 @@ public class MainActivity extends Activity {
                     recipeState.setScope(RecipeBrowseState.SCOPE_ALL);
                     recipeState.setCuisine(RecipeCuisines.ALL);
                     recipeState.setCookingMethod(RecipeCategories.ALL);
+                    recipeState.setSortMode(RecipeBrowseState.SORT_DEFAULT);
                     resetRecipeScrollToTop();
                     renderRecipeResults(true);
                 },
@@ -903,6 +1439,8 @@ public class MainActivity extends Activity {
                     recipeState.setCuisine(cuisine[0]);
                     recipeState.setCookingMethod("全部做法".equals(method[0])
                             ? RecipeCategories.ALL : method[0]);
+                    recipeState.setSortMode("习惯排序".equals(sort[0])
+                            ? RecipeBrowseState.SORT_HABIT : RecipeBrowseState.SORT_DEFAULT);
                     resetRecipeScrollToTop();
                     renderRecipeResults(true);
                 });
@@ -992,7 +1530,8 @@ public class MainActivity extends Activity {
         outer.setClipToOutline(true);
         outer.setMinimumHeight(dp(86));
         outer.setContentDescription("查看菜谱：" + recipe.name);
-        outer.setOnClickListener(v -> openRecipeDetail(recipe, "RECIPES"));
+        outer.setOnClickListener(v -> openRecipeDetail(recipe,
+                currentCollectionId.isEmpty() ? "RECIPES" : "COLLECTION_RECIPES"));
         MotionSpec.attachPress(outer);
 
         View accent = new View(this);
@@ -1051,7 +1590,11 @@ public class MainActivity extends Activity {
 
     private void openRecipeDetail(Recipe recipe, String returnPage) {
         if (recipe == null) return;
-        if ("RECIPES".equals(returnPage)) saveRecipeScrollPosition();
+        if (!"COLLECTION_RECIPES".equals(returnPage)) currentCollectionId = "";
+        if ("RECIPES".equals(returnPage) || "COLLECTION_RECIPES".equals(returnPage)) {
+            saveRecipeScrollPosition();
+        }
+        recipeUsageRepository.recordOpen(recipe.id, System.currentTimeMillis());
         currentRecipeId = recipe.id;
         detailReturnPage = returnPage;
         showRecipeDetail(recipe);
@@ -1109,7 +1652,7 @@ public class MainActivity extends Activity {
             MotionSpec.favorite(favorite);
         });
         actions.addView(favorite, weighted());
-        if (recipe.custom) {
+        if (canEditRecipe(recipe)) {
             addGap(actions, 10);
             Button edit = outlineButton("编辑");
             edit.setOnClickListener(v -> showRecipeForm(recipe));
@@ -1131,7 +1674,7 @@ public class MainActivity extends Activity {
             body.addView(tips, spaced(10));
         }
 
-        if (recipe.custom) {
+        if (canEditRecipe(recipe)) {
             Button delete = textButton("删除这道自定义菜谱", false);
             delete.setTextColor(CINNABAR);
             delete.setOnClickListener(v -> confirmDelete(recipe));
@@ -1179,6 +1722,10 @@ public class MainActivity extends Activity {
         if ("HOME".equals(detailReturnPage)) showHome();
         else if ("PANTRY_MATCHES".equals(detailReturnPage)) showPantryMatches();
         else if ("SPECIALS".equals(detailReturnPage)) showSpecials();
+        else if ("COLLECTION_RECIPES".equals(detailReturnPage)) {
+            RecipeCollection collection = activeCollection();
+            if (collection == null) showRecipeCollections(); else showCollectionRecipes(collection);
+        }
         else showRecipes(recipeState.getScope());
     }
 
@@ -1189,9 +1736,25 @@ public class MainActivity extends Activity {
                 .setNegativeButton("取消", null)
                 .setPositiveButton("删除", (dialog, which) -> {
                     repository.deleteCustomRecipe(recipe.id);
-                    toast("已删除");
-                    showRecipes(RecipeBrowseState.SCOPE_CUSTOM);
+                    RecipeCollection collection = activeCollection();
+                    if (collection == null) {
+                        toast("已从本机删除");
+                        showRecipes(RecipeBrowseState.SCOPE_CUSTOM);
+                        return;
+                    }
+                    List<Recipe> recipes = new ArrayList<>(collection.recipes);
+                    recipes.removeIf(item -> item.id.equals(recipe.id));
+                    RecipeCollection changed = collection.withRecipes(
+                            recipes, collection.revision, System.currentTimeMillis());
+                    collectionRepository.saveCollection(changed);
+                    syncRecipeCollectionChange(changed, null, "菜谱已删除并同步");
                 }).show();
+    }
+
+    private boolean canEditRecipe(Recipe recipe) {
+        if (recipe == null || !recipe.custom) return false;
+        RecipeCollection collection = activeCollection();
+        return collection == null || collectionCredentials.has(collection.id);
     }
 
     private void showRecipesForIngredient(String ingredient) {
@@ -1682,6 +2245,7 @@ public class MainActivity extends Activity {
     }
 
     private void showRecipeForm(Recipe existing) {
+        formCollectionId = currentCollectionId;
         currentRecipeId = existing == null ? "" : existing.id;
         formExisting = existing;
         formSaved = false;
@@ -1786,14 +2350,34 @@ public class MainActivity extends Activity {
         );
         repository.saveCustomRecipe(recipe);
         formSaved = true;
-        toast("菜谱已保存");
+        if (!formCollectionId.isEmpty()) {
+            RecipeCollection collection = collectionRepository.findById(formCollectionId);
+            if (collection != null) {
+                List<Recipe> recipes = new ArrayList<>(collection.recipes);
+                boolean replaced = false;
+                for (int i = 0; i < recipes.size(); i++) {
+                    if (recipes.get(i).id.equals(recipe.id)) {
+                        recipes.set(i, recipe);
+                        replaced = true;
+                        break;
+                    }
+                }
+                if (!replaced) recipes.add(recipe);
+                RecipeCollection changed = collection.withRecipes(
+                        recipes, collection.revision, System.currentTimeMillis());
+                collectionRepository.saveCollection(changed);
+                syncRecipeCollectionChange(changed, recipe, "菜谱已保存并同步");
+                return;
+            }
+        }
+        toast("菜谱已保存在本机");
         openRecipeDetail(repository.findById(recipe.id), "RECIPES");
     }
 
     private void leaveForm(String cuisine, String category) {
         if (formSaved || formInitialSignature.equals(formSignature(cuisine, category))) {
             if (formExisting != null) showRecipeDetail(repository.findById(formExisting.id));
-            else showRecipes(RecipeBrowseState.SCOPE_ALL);
+            else returnFromRecipeForm();
             return;
         }
         dialogBuilder()
@@ -1802,8 +2386,15 @@ public class MainActivity extends Activity {
                 .setNegativeButton("继续编辑", null)
                 .setPositiveButton("放弃", (d, w) -> {
                     if (formExisting != null) showRecipeDetail(repository.findById(formExisting.id));
-                    else showRecipes(RecipeBrowseState.SCOPE_ALL);
+                    else returnFromRecipeForm();
                 }).show();
+    }
+
+    private void returnFromRecipeForm() {
+        RecipeCollection collection = formCollectionId.isEmpty()
+                ? null : collectionRepository.findById(formCollectionId);
+        if (collection == null) showRecipes(RecipeBrowseState.SCOPE_ALL);
+        else showCollectionRecipes(collection);
     }
 
     private String formSignature(String cuisine, String category) {
@@ -2243,17 +2834,30 @@ public class MainActivity extends Activity {
         }
     }
 
-    private final class RecipeListAdapter extends RecyclerView.Adapter<RecipeViewHolder> {
+    private final class RecipeListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
+        private static final int TYPE_HEADER = 1;
+        private static final int TYPE_RECIPE = 2;
         private List<RecipeListItem> items = Collections.emptyList();
 
         RecipeListAdapter() {
             setHasStableIds(true);
         }
 
-        void submitRecipes(List<Recipe> recipes, Set<String> favorites) {
+        void submitRecipes(List<Recipe> recipes, Set<String> favorites, boolean groupByCuisine) {
             List<RecipeListItem> next = new ArrayList<>();
-            for (Recipe recipe : recipes) {
-                next.add(new RecipeListItem(recipe, favorites.contains(recipe.id)));
+            if (groupByCuisine) {
+                Map<String, List<Recipe>> groups = RecipeCuisineGroups.group(recipes);
+                for (Map.Entry<String, List<Recipe>> group : groups.entrySet()) {
+                    if (group.getValue().isEmpty()) continue;
+                    next.add(RecipeListItem.header(group.getKey(), group.getValue().size()));
+                    for (Recipe recipe : group.getValue()) {
+                        next.add(RecipeListItem.recipe(recipe, favorites.contains(recipe.id)));
+                    }
+                }
+            } else {
+                for (Recipe recipe : recipes) {
+                    next.add(RecipeListItem.recipe(recipe, favorites.contains(recipe.id)));
+                }
             }
             List<RecipeListItem> previous = items;
             DiffUtil.DiffResult diff = DiffUtil.calculateDiff(new DiffUtil.Callback() {
@@ -2262,15 +2866,19 @@ public class MainActivity extends Activity {
 
                 @Override
                 public boolean areItemsTheSame(int oldPosition, int newPosition) {
-                    return Objects.equals(
-                            previous.get(oldPosition).recipe.id,
-                            next.get(newPosition).recipe.id
-                    );
+                    return Objects.equals(previous.get(oldPosition).stableKey(), next.get(newPosition).stableKey());
                 }
 
                 @Override
                 public boolean areContentsTheSame(int oldPosition, int newPosition) {
-                    return sameRecipeContent(previous.get(oldPosition), next.get(newPosition));
+                    RecipeListItem oldItem = previous.get(oldPosition);
+                    RecipeListItem newItem = next.get(newPosition);
+                    if (oldItem.isHeader() || newItem.isHeader()) {
+                        return oldItem.isHeader() == newItem.isHeader()
+                                && Objects.equals(oldItem.sectionTitle, newItem.sectionTitle)
+                                && oldItem.sectionCount == newItem.sectionCount;
+                    }
+                    return sameRecipeContent(oldItem, newItem);
                 }
             });
             items = next;
@@ -2279,11 +2887,24 @@ public class MainActivity extends Activity {
 
         @Override
         public long getItemId(int position) {
-            return stableRecipeId(items.get(position).recipe.id);
+            return stableRecipeId(items.get(position).stableKey());
         }
 
         @Override
-        public RecipeViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+        public int getItemViewType(int position) {
+            return items.get(position).isHeader() ? TYPE_HEADER : TYPE_RECIPE;
+        }
+
+        @Override
+        public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+            if (viewType == TYPE_HEADER) {
+                TextView header = text("", 16, INK, true);
+                header.setPadding(dp(4), dp(14), dp(4), dp(10));
+                ViewCompat.setAccessibilityHeading(header, true);
+                header.setLayoutParams(new RecyclerView.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+                return new CuisineHeaderViewHolder(header);
+            }
             FrameLayout container = new FrameLayout(MainActivity.this);
             container.setPadding(0, 0, 0, dp(10));
             container.setLayoutParams(new RecyclerView.LayoutParams(
@@ -2294,18 +2915,23 @@ public class MainActivity extends Activity {
         }
 
         @Override
-        public void onBindViewHolder(RecipeViewHolder holder, int position) {
+        public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
             RecipeListItem item = items.get(position);
-            holder.container.removeAllViews();
-            holder.container.addView(recipeCard(item.recipe, item.favorite), new FrameLayout.LayoutParams(
+            if (holder instanceof CuisineHeaderViewHolder) {
+                ((CuisineHeaderViewHolder) holder).label.setText(item.sectionTitle + " · " + item.sectionCount + " 道");
+                return;
+            }
+            RecipeViewHolder recipeHolder = (RecipeViewHolder) holder;
+            recipeHolder.container.removeAllViews();
+            recipeHolder.container.addView(recipeCard(item.recipe, item.favorite), new FrameLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.WRAP_CONTENT
             ));
         }
 
         @Override
-        public void onViewRecycled(RecipeViewHolder holder) {
-            holder.container.removeAllViews();
+        public void onViewRecycled(RecyclerView.ViewHolder holder) {
+            if (holder instanceof RecipeViewHolder) ((RecipeViewHolder) holder).container.removeAllViews();
         }
 
         @Override public int getItemCount() { return items.size(); }
@@ -2336,10 +2962,30 @@ public class MainActivity extends Activity {
     private static final class RecipeListItem {
         final Recipe recipe;
         final boolean favorite;
+        final String sectionTitle;
+        final int sectionCount;
 
-        RecipeListItem(Recipe recipe, boolean favorite) {
+        private RecipeListItem(Recipe recipe, boolean favorite, String sectionTitle, int sectionCount) {
             this.recipe = recipe;
             this.favorite = favorite;
+            this.sectionTitle = sectionTitle;
+            this.sectionCount = sectionCount;
+        }
+
+        static RecipeListItem recipe(Recipe recipe, boolean favorite) {
+            return new RecipeListItem(recipe, favorite, null, 0);
+        }
+
+        static RecipeListItem header(String title, int count) {
+            return new RecipeListItem(null, false, title, count);
+        }
+
+        boolean isHeader() {
+            return recipe == null;
+        }
+
+        String stableKey() {
+            return isHeader() ? "cuisine-" + sectionTitle : "recipe-" + recipe.id;
         }
     }
 
@@ -2358,14 +3004,22 @@ public class MainActivity extends Activity {
         recipeState.setCookingMethod(state.getString("recipeCategory", RecipeCategories.ALL));
         recipeState.setCuisine(state.getString("recipeCuisine", RecipeCuisines.ALL));
         recipeState.setDimension(state.getString("recipeDimension", RecipeBrowseState.DIMENSION_CUISINE));
+        recipeState.setViewMode(state.getString("recipeViewMode", RecipeBrowseState.VIEW_LIST));
+        recipeState.setSortMode(state.getString("recipeSortMode", RecipeBrowseState.SORT_DEFAULT));
         pantryFilter = state.getString("pantryFilter", "ALL");
         currentRecipeId = state.getString("recipeId", "");
         detailReturnPage = state.getString("detailReturnPage", "RECIPES");
         currentSpecialId = state.getString("specialId", "");
+        currentCollectionId = state.getString("collectionId", "");
         recipeScrollPosition = state.getInt("recipeScrollPosition", 0);
         recipeScrollOffset = state.getInt("recipeScrollOffset", 0);
         String page = state.getString("page", "HOME");
         if ("RECIPES".equals(page)) showRecipes(recipeState.getScope());
+        else if ("COLLECTIONS".equals(page)) renderRecipeCollections(false);
+        else if ("COLLECTION_RECIPES".equals(page)) {
+            RecipeCollection collection = activeCollection();
+            if (collection == null) renderRecipeCollections(false); else showCollectionRecipes(collection);
+        }
         else if ("PANTRY".equals(page)) showPantry();
         else if ("PANTRY_MATCHES".equals(page)) showPantryMatches();
         else if ("SPECIALS".equals(page)) showSpecials();
@@ -2375,10 +3029,10 @@ public class MainActivity extends Activity {
         }
         else if ("SHOPPING".equals(page)) showShoppingList();
         else if ("DETAIL".equals(page)) {
-            Recipe recipe = repository.findById(currentRecipeId);
+            Recipe recipe = findRecipeById(currentRecipeId);
             if (recipe != null) showRecipeDetail(recipe); else showRecipes(RecipeBrowseState.SCOPE_ALL);
         } else if ("FORM".equals(page)) {
-            Recipe recipe = repository.findById(currentRecipeId);
+            Recipe recipe = findRecipeById(currentRecipeId);
             showRecipeForm(recipe);
         } else showHome();
     }
@@ -2394,9 +3048,12 @@ public class MainActivity extends Activity {
         outState.putString("recipeCategory", recipeState.getCookingMethod());
         outState.putString("recipeCuisine", recipeState.getCuisine());
         outState.putString("recipeDimension", recipeState.getDimension());
+        outState.putString("recipeViewMode", recipeState.getViewMode());
+        outState.putString("recipeSortMode", recipeState.getSortMode());
         outState.putString("pantryFilter", pantryFilter);
         outState.putString("detailReturnPage", detailReturnPage);
         outState.putString("specialId", currentSpecialId);
+        outState.putString("collectionId", currentCollectionId);
         outState.putInt("recipeScrollPosition", recipeScrollPosition);
         outState.putInt("recipeScrollOffset", recipeScrollOffset);
     }
@@ -2424,6 +3081,15 @@ public class MainActivity extends Activity {
         }
     }
 
+    private static final class CuisineHeaderViewHolder extends RecyclerView.ViewHolder {
+        final TextView label;
+
+        CuisineHeaderViewHolder(TextView label) {
+            super(label);
+            this.label = label;
+        }
+    }
+
     private void dispatchBack() {
         long now = SystemClock.uptimeMillis();
         if (now - lastBackDispatchAt < 150L) return;
@@ -2439,7 +3105,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onDestroy() {
         dismissCloudProgress();
-        if (cloudBackupClient != null) cloudBackupClient.shutdown();
+        if (collectionApiClient != null) collectionApiClient.shutdown();
         if (remoteImageLoader != null) remoteImageLoader.close();
         super.onDestroy();
     }

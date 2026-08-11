@@ -10,7 +10,7 @@
 
 ## Stable Preferences
 
-- Platform and data: Native Android Java, local-first, no account, analytics, or ads; personal data can be explicitly backed up to a private repository while core flows remain offline.
+- Platform and data: Native Android Java, local-first, no account, analytics, or ads; cloud synchronization contains numbered recipe collections and custom recipes only. Settings, favorites, pantry, shopping data, selected ingredients, and usage history remain local.
 - UI and UX: Recipe content takes priority over persistent controls; advanced controls use progressive disclosure.
 - Theme and typography: Warm paper, jade, cinnabar, old gold, readable Chinese system typography, and a text-first Android home Hero without character artwork.
 - Motion and performance: Short purposeful motion with an immediate reduced-motion fallback; no continuous decorative animation.
@@ -18,6 +18,13 @@
 - Release: Preserve package identity, local-data compatibility, each repository's signing continuity, and all historical GitHub Releases. Do not build, upload, or hand off a debug APK unless explicitly requested.
 
 ## Iterations
+
+### 2026-08-11 v0.6.7-Bata
+
+- Changes: Replaced whole-device backup/restore UI with recipe-only collection sync; added server-assigned `Dew-xxxx` collections, protected custom collections, encrypted scoped credentials, explicit sync conflict handling, cuisine grouping, and local habit sorting.
+- Decisions and new preferences: Existing built-in specials remain separate. Standard collections are publicly readable; key-gated custom collections are excluded from the public catalog and require a server-issued token. Do not embed a GitHub PAT or custom-collection key in the APK.
+- Verification: On 2026-08-12, 46 local unit tests, Debug/Release Lint, and Release assembly passed with Android SDK 36; no debug APK was assembled. Worker tests passed remotely. Worker deployment, full Android CI, signing, APK metadata, and published-asset verification remain required before publication.
+- Commit, tag, and Release: Source commit completed locally; push, tag, and Release remain pending until the recipe collection service is deployed and verified.
 
 ### 2026-08-11 v0.6.6-Bata
 

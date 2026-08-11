@@ -11,6 +11,20 @@ import org.junit.Test;
 
 public class RecipeBrowseStateTest {
     @Test
+    public void viewAndHabitSortUseKnownValuesOnly() {
+        RecipeBrowseState state = new RecipeBrowseState();
+        state.setViewMode(RecipeBrowseState.VIEW_CUISINE);
+        state.setSortMode(RecipeBrowseState.SORT_HABIT);
+
+        assertEquals(RecipeBrowseState.VIEW_CUISINE, state.getViewMode());
+        assertEquals("习惯排序", state.sortLabel());
+
+        state.setViewMode("UNKNOWN");
+        state.setSortMode("UNKNOWN");
+        assertEquals(RecipeBrowseState.VIEW_LIST, state.getViewMode());
+        assertEquals(RecipeBrowseState.SORT_DEFAULT, state.getSortMode());
+    }
+    @Test
     public void changingVisibleDimensionKeepsBothSelections() {
         RecipeBrowseState state = new RecipeBrowseState();
         state.setCuisine(RecipeCuisines.SICHUAN);
