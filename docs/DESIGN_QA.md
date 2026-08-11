@@ -47,6 +47,7 @@
 - [x] Habit history, theme, favorites, pantry, shopping list, and selected ingredients remain outside recipe collection payloads.
 - [x] Recipe collection refresh caches the complete cloud state while repository visibility, page restore, active collection, and recipe lookup exclude locked custom specials.
 - [x] v0.6.7-Bata local Android verification passed 54 unit tests, Debug/Release Lint with 0 errors, and Release assembly with SDK 36; no debug APK was assembled.
+- [x] CI run `31515499816` passed cloud access, signing, APK metadata, and artifact upload; the single published APK was re-downloaded with a matching SHA-256.
 - [ ] Physical-device font-scale, orientation, and TalkBack checks pass.
 
 ## Known Limits

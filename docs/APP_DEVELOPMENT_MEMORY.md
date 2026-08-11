@@ -24,8 +24,8 @@
 
 - Changes: Replaced whole-device restore with recipe-only collections; added sequential `Dew-xxxx` allocation, direct GitHub state synchronization, local `KKLLTL` visibility gating, explicit revision conflict handling, cuisine grouping, and local habit sorting.
 - Decisions and new preferences: Existing built-in specials remain separate. Complete collection data may be downloaded before a key is entered; the App hides custom-special metadata and recipes until the packaged key is validated locally. Cloudflare Worker, scoped tokens, recovery codes, and Android Keystore collection credentials are not used.
-- Verification: On 2026-08-12, 54 unit tests, Debug/Release Lint with 0 errors, and Release assembly passed with SDK 36; no debug APK was assembled. The unsigned local APK reports package `com.dawns.tingstable`, version 14 / `0.6.7-Bata`, display name `懒羊羊当大厨~`, minSdk 26, targetSdk 36, and the expected Internet permission. The private cloud state was initialized and read back with `KKLLTL` and no access key. CI signing and published-asset verification remain pending.
-- Commit, tag, and Release: The initial collection implementation is committed locally; the final direct-GitHub follow-up, push, tag, and Release are pending verification.
+- Verification: On 2026-08-12, 54 unit tests, Debug/Release Lint with 0 errors, and Release assembly passed with SDK 36; no debug APK was assembled. GitHub Actions run `31515499816` passed the cloud write probe, release signing, tests, Lint, assembly, and APK metadata checks. The signed APK keeps certificate SHA-256 `ae06e4523f23cd177fe22081c5ae9150b5e9533478de53584566ac22013f6752`; its SHA-256 is `b05254695526cc519e4e79dbd1adb88f18a84a679d1ac6e1e9fb9ab6d47214c7`. The private cloud state contains `KKLLTL` without an access key, and the published APK was re-downloaded byte-identically.
+- Commit, tag, and Release: Collection commit `cc5441c` and direct-GitHub follow-up `751d8a2` are pushed. Tag `v0.6.7-Bata` points to `751d8a2`; its GitHub Pre-release is published with only `LazySheepChef-v0.6.7-Bata-release.apk`.
 
 ### 2026-08-11 v0.6.6-Bata
 
