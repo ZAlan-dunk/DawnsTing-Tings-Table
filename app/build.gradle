@@ -7,7 +7,7 @@ def releaseStorePassword = System.getenv('TINGS_TABLE_STORE_PASSWORD')
 def releaseKeyAlias = System.getenv('TINGS_TABLE_KEY_ALIAS')
 def releaseKeyPassword = System.getenv('TINGS_TABLE_KEY_PASSWORD')
 def hasReleaseSigning = releaseStoreFile && releaseStorePassword && releaseKeyAlias && releaseKeyPassword
-def recipeCollectionApiUrl = System.getenv('RECIPE_COLLECTION_API_URL') ?: ''
+def recipeCloudToken = System.getenv('RECIPE_CLOUD_TOKEN') ?: ''
 def buildConfigString = { value -> '"' + value.replace('\\', '\\\\').replace('"', '\\"') + '"' }
 
 android {
@@ -21,8 +21,13 @@ android {
         versionCode 14
         versionName '0.6.7-Bata'
 
+        buildConfigField 'String', 'RECIPE_CLOUD_OWNER', buildConfigString('ZAlan-dunk')
+        buildConfigField 'String', 'RECIPE_CLOUD_REPOSITORY', buildConfigString('Dawnsdew-Recipe-Cloud')
         buildConfigField 'String', 'RECIPE_CLOUD_PROFILE_ID', buildConfigString('tings')
-        buildConfigField 'String', 'RECIPE_COLLECTION_API_URL', buildConfigString(recipeCollectionApiUrl)
+        buildConfigField 'String', 'RECIPE_CLOUD_TOKEN', buildConfigString(recipeCloudToken)
+        buildConfigField 'String', 'RECIPE_SPECIAL_COLLECTION_ID', buildConfigString('KKLLTL')
+        buildConfigField 'String', 'RECIPE_SPECIAL_COLLECTION_NAME', buildConfigString('露露的小厨房')
+        buildConfigField 'String', 'RECIPE_SPECIAL_ACCESS_KEY', buildConfigString('TL123')
 
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
     }

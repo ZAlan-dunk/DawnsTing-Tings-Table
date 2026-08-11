@@ -48,7 +48,6 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.dawns.tingstable.data.PantryRepository;
-import com.dawns.tingstable.data.CollectionCredentialStore;
 import com.dawns.tingstable.data.RecipeCollectionApiClient;
 import com.dawns.tingstable.data.RecipeCollectionRepository;
 import com.dawns.tingstable.data.RecipeRepository;
@@ -113,7 +112,6 @@ public class MainActivity extends Activity {
     private RecipeRepository repository;
     private PantryRepository pantryRepository;
     private RecipeCollectionRepository collectionRepository;
-    private CollectionCredentialStore collectionCredentials;
     private RecipeCollectionApiClient collectionApiClient;
     private RecipeUsageRepository recipeUsageRepository;
     private RemoteImageLoader remoteImageLoader;
@@ -180,10 +178,11 @@ public class MainActivity extends Activity {
         repository = new RecipeRepository(this);
         pantryRepository = new PantryRepository(this);
         collectionRepository = new RecipeCollectionRepository(this);
-        collectionCredentials = new CollectionCredentialStore(this);
         collectionApiClient = new RecipeCollectionApiClient(
-                BuildConfig.RECIPE_COLLECTION_API_URL,
-                BuildConfig.RECIPE_CLOUD_PROFILE_ID
+                BuildConfig.RECIPE_CLOUD_OWNER,
+                BuildConfig.RECIPE_CLOUD_REPOSITORY,
+                BuildConfig.RECIPE_CLOUD_PROFILE_ID,
+                BuildConfig.RECIPE_CLOUD_TOKEN
         );
         recipeUsageRepository = new RecipeUsageRepository(this);
         remoteImageLoader = new RemoteImageLoader(this);
@@ -576,7 +575,7 @@ public class MainActivity extends Activity {
     }
 
     private String collectionSyncStatus() {
-        if (collectionApiClient == null || !collectionApiClient.isConfigured()) return "菜谱集服务尚未配置";
+        if (collectionApiClient == null || !collectionApiClient.isConfigured()) return "菜谱集云端尚未配置";
         long synced = collectionRepository.lastSyncAt();
         return synced <= 0L ? "尚未同步云端菜谱" : "最近同步 " + formatBackupTime(synced);
     }
@@ -650,10 +649,7 @@ public class MainActivity extends Activity {
         create.setOnClickListener(v -> showCreateCollectionDialog());
         actions.addView(create, weighted());
         body.addView(actions, spaced(18));
-        Button recover = textButton("恢复已有菜谱集编辑权", false);
-        recover.setOnClickListener(v -> showCollectionRecoveryDialog());
-        body.addView(recover, spaced(6));
-        body.addView(text("普通菜谱集可被其他使用者读取；个人设置与使用记录只保存在本机。",
+        body.addView(text("所有菜谱集数据都可从云端拉取；定制特典仅在本机输入正确密钥后显示。个人设置与使用记录只保存在本机。",
                 12, MUTED, false), spaced(8));
 
         setPage("COLLECTIONS", "菜谱集", this::showHome, scroll(body), false);
@@ -672,7 +668,7 @@ public class MainActivity extends Activity {
         top.addView(number);
         addGap(top, 10);
         top.addView(text(collection.name, 17, INK, true), weighted());
-        if (collectionCredentials.has(collection.id)) {
+        if (collectionRepository.canEdit(collection)) {
             Button rename = textButton("改名", false);
             rename.setContentDescription("修改菜谱集名称：" + collection.name);
             rename.setOnClickListener(v -> showRenameCollectionDialog(collection));
@@ -680,7 +676,7 @@ public class MainActivity extends Activity {
         }
         card.addView(top);
         String type = RecipeCollection.TYPE_SPECIAL.equals(collection.type) ? "定制特典" : "普通菜谱集";
-        String access = collectionCredentials.has(collection.id) ? "可编辑" : "只读";
+        String access = collectionRepository.canEdit(collection) ? "可编辑" : "只读";
         String syncState = collectionRepository.isDirty(collection.id) ? " · 待同步" : "";
         TextView detail = text(type + " · " + collection.recipes.size() + " 道 · " + access + syncState,
                 12, MUTED, false);
@@ -695,7 +691,7 @@ public class MainActivity extends Activity {
 
     private void refreshRecipeCollections(boolean userInitiated) {
         if (collectionApiClient == null || !collectionApiClient.isConfigured()) {
-            if (userInitiated) showCloudError("菜谱集服务尚未配置");
+            if (userInitiated) showCloudError("菜谱集云端尚未配置");
             return;
         }
         List<RecipeCollection> pending = new ArrayList<>();
@@ -717,13 +713,7 @@ public class MainActivity extends Activity {
             return;
         }
         RecipeCollection collection = pending.get(index);
-        String token = collectionCredentials.get(collection.id);
-        if (token.isEmpty()) {
-            dismissCloudProgress();
-            showCloudError("缺少 " + collection.id + " 的编辑权限，本机修改仍已保留");
-            return;
-        }
-        collectionApiClient.save(collection, token, new RecipeCollectionApiClient.Callback<RecipeCollection>() {
+        collectionApiClient.save(collection, new RecipeCollectionApiClient.Callback<RecipeCollection>() {
             @Override
             public void onSuccess(RecipeCollection value) {
                 collectionRepository.saveCollection(value);
@@ -772,7 +762,7 @@ public class MainActivity extends Activity {
 
     private boolean hasEditableCollection() {
         for (RecipeCollection collection : collectionRepository.getCollections()) {
-            if (collectionCredentials.has(collection.id)) return true;
+            if (collectionRepository.canEdit(collection)) return true;
         }
         return false;
     }
@@ -780,7 +770,7 @@ public class MainActivity extends Activity {
     private List<RecipeCollection> editableCollections() {
         List<RecipeCollection> result = new ArrayList<>();
         for (RecipeCollection collection : collectionRepository.getCollections()) {
-            if (collectionCredentials.has(collection.id)) result.add(collection);
+            if (collectionRepository.canEdit(collection)) result.add(collection);
         }
         return result;
     }
@@ -788,7 +778,7 @@ public class MainActivity extends Activity {
     private void startNewRecipe() {
         RecipeCollection active = activeCollection();
         if (active != null) {
-            if (collectionCredentials.has(active.id)) showRecipeForm(null);
+            if (collectionRepository.canEdit(active)) showRecipeForm(null);
             else showCloudError("这个菜谱集当前为只读");
             return;
         }
@@ -845,29 +835,22 @@ public class MainActivity extends Activity {
 
     private void createRecipeCollection(String name) {
         if (collectionApiClient == null || !collectionApiClient.isConfigured()) {
-            showCloudError("菜谱集服务尚未配置");
+            showCloudError("菜谱集云端尚未配置");
             return;
         }
         showCloudProgress("正在创建", "正在从云端分配连续编号…");
         List<Recipe> initialRecipes = hasEditableCollection()
                 ? Collections.emptyList() : repository.getCustomRecipes();
         collectionApiClient.create(name, initialRecipes,
-                new RecipeCollectionApiClient.Callback<RecipeCollectionApiClient.AccessResult>() {
+                new RecipeCollectionApiClient.Callback<RecipeCollection>() {
             @Override
-            public void onSuccess(RecipeCollectionApiClient.AccessResult value) {
+            public void onSuccess(RecipeCollection value) {
                 dismissCloudProgress();
-                acceptCollectionAccess(value);
-                String message = "菜谱集 " + value.collection.id + " 已创建";
-                if (!value.recoveryCode.isEmpty()) {
-                    dialogBuilder().setTitle(message)
-                            .setMessage("管理恢复码：" + value.recoveryCode
-                                    + "\n\n请妥善保管；卸载后需要它重新取得编辑权限。")
-                            .setPositiveButton("知道了", (dialog, which) -> showCollectionRecipes(value.collection))
-                            .show();
-                } else {
-                    toast(message);
-                    showCollectionRecipes(value.collection);
-                }
+                collectionRepository.saveCollection(value);
+                collectionRepository.markClean(value.id);
+                collectionRepository.markSynced(System.currentTimeMillis());
+                toast("菜谱集 " + value.id + " 已创建");
+                showCollectionRecipes(value);
             }
 
             @Override public void onError(String message) {
@@ -898,79 +881,47 @@ public class MainActivity extends Activity {
     }
 
     private void unlockSpecialCollection(String key) {
-        if (collectionApiClient == null || !collectionApiClient.isConfigured()) {
-            showCloudError("菜谱集服务尚未配置");
+        if (!BuildConfig.RECIPE_SPECIAL_ACCESS_KEY.equals(key == null ? "" : key.trim())) {
+            showCloudError("特典密钥不正确");
             return;
         }
-        showCloudProgress("正在验证", "正在获取定制特典…");
-        collectionApiClient.unlockSpecial(key,
-                new RecipeCollectionApiClient.Callback<RecipeCollectionApiClient.AccessResult>() {
+        String specialId = BuildConfig.RECIPE_SPECIAL_COLLECTION_ID;
+        RecipeCollection cached = collectionRepository.findStoredById(specialId);
+        collectionRepository.unlockSpecial(specialId);
+        if (collectionApiClient == null || !collectionApiClient.isConfigured()) {
+            if (cached != null) {
+                toast("已解锁 " + cached.name + "，当前显示本机缓存");
+                showCollectionRecipes(cached);
+            } else {
+                showCloudError("特典已在本机解锁，但菜谱集云端尚未配置");
+            }
+            return;
+        }
+        showCloudProgress("正在同步", "正在获取定制特典…");
+        collectionApiClient.ensureSpecial(
+                specialId,
+                BuildConfig.RECIPE_SPECIAL_COLLECTION_NAME,
+                new RecipeCollectionApiClient.Callback<RecipeCollection>() {
                     @Override
-                    public void onSuccess(RecipeCollectionApiClient.AccessResult value) {
+                    public void onSuccess(RecipeCollection value) {
                         dismissCloudProgress();
-                        acceptCollectionAccess(value);
-                        toast("已解锁 " + value.collection.name);
-                        showCollectionRecipes(value.collection);
+                        collectionRepository.saveCollection(value);
+                        collectionRepository.markClean(value.id);
+                        collectionRepository.markSynced(System.currentTimeMillis());
+                        toast("已解锁 " + value.name);
+                        showCollectionRecipes(value);
                     }
 
                     @Override public void onError(String message) {
                         dismissCloudProgress();
-                        showCloudError(message);
+                        if (cached != null) {
+                            toast("已解锁，暂时显示本机缓存");
+                            showCollectionRecipes(cached);
+                        } else {
+                            showCloudError("特典已在本机解锁，但云端同步失败：" + message);
+                        }
                     }
                 });
-    }
-
-    private void showCollectionRecoveryDialog() {
-        LinearLayout form = dialogBody();
-        EditText number = input("例如：Dew-0001");
-        EditText code = input("管理恢复码");
-        code.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
-        form.addView(labeled("菜谱集编号", number));
-        form.addView(labeled("管理恢复码", code), spaced(8));
-        AlertDialog dialog = dialogBuilder()
-                .setTitle("恢复编辑权限")
-                .setView(form)
-                .setNegativeButton("取消", null)
-                .setPositiveButton("恢复", null)
-                .create();
-        dialog.setOnShowListener(ignored -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
-            String id = number.getText().toString().trim();
-            String value = code.getText().toString().trim();
-            if (id.isEmpty()) { number.setError("请输入菜谱集编号"); return; }
-            if (value.isEmpty()) { code.setError("请输入管理恢复码"); return; }
-            dialog.dismiss();
-            recoverCollectionAccess(id, value);
-        }));
-        dialog.show();
-    }
-
-    private void recoverCollectionAccess(String collectionId, String recoveryCode) {
-        if (collectionApiClient == null || !collectionApiClient.isConfigured()) {
-            showCloudError("菜谱集服务尚未配置");
-            return;
-        }
-        showCloudProgress("正在验证", "正在恢复菜谱集编辑权限…");
-        collectionApiClient.recover(collectionId, recoveryCode,
-                new RecipeCollectionApiClient.Callback<RecipeCollectionApiClient.AccessResult>() {
-                    @Override public void onSuccess(RecipeCollectionApiClient.AccessResult value) {
-                        dismissCloudProgress();
-                        acceptCollectionAccess(value);
-                        toast("已恢复 " + value.collection.id + " 的编辑权限");
-                        showCollectionRecipes(value.collection);
-                    }
-
-                    @Override public void onError(String message) {
-                        dismissCloudProgress();
-                        showCloudError(message);
-                    }
-                });
-    }
-
-    private void acceptCollectionAccess(RecipeCollectionApiClient.AccessResult value) {
-        collectionCredentials.save(value.collection.id, value.accessToken);
-        collectionRepository.saveCollection(value.collection);
-        collectionRepository.markClean(value.collection.id);
-        collectionRepository.markSynced(System.currentTimeMillis());
     }
 
     private void showRenameCollectionDialog(RecipeCollection collection) {
@@ -1001,7 +952,7 @@ public class MainActivity extends Activity {
             return;
         }
         if (collectionApiClient == null || !collectionApiClient.isConfigured()) return;
-        collectionApiClient.get(collection.id, collectionCredentials.get(collection.id),
+        collectionApiClient.get(collection.id,
                 new RecipeCollectionApiClient.Callback<RecipeCollection>() {
                     @Override
                     public void onSuccess(RecipeCollection value) {
@@ -1022,13 +973,12 @@ public class MainActivity extends Activity {
     private void saveCollectionRemote(RecipeCollection collection, String successMessage) {
         collectionRepository.saveCollection(collection);
         collectionRepository.markDirty(collection.id);
-        String token = collectionCredentials.get(collection.id);
-        if (token.isEmpty()) {
-            showCloudError("修改已保存在本机，但当前设备没有这个菜谱集的编辑权限");
+        if (collectionApiClient == null || !collectionApiClient.isConfigured()) {
+            showCloudError("修改已保存在本机，但当前无法同步到云端");
             return;
         }
         showCloudProgress("正在同步", "正在更新 " + collection.id + "…");
-        collectionApiClient.save(collection, token, new RecipeCollectionApiClient.Callback<RecipeCollection>() {
+        collectionApiClient.save(collection, new RecipeCollectionApiClient.Callback<RecipeCollection>() {
             @Override
             public void onSuccess(RecipeCollection value) {
                 dismissCloudProgress();
@@ -1050,15 +1000,14 @@ public class MainActivity extends Activity {
 
     private void syncRecipeCollectionChange(RecipeCollection changed, Recipe savedRecipe,
                                             String successMessage) {
-        String token = collectionCredentials.get(changed.id);
         collectionRepository.markDirty(changed.id);
-        if (collectionApiClient == null || !collectionApiClient.isConfigured() || token.isEmpty()) {
+        if (collectionApiClient == null || !collectionApiClient.isConfigured()) {
             showCloudError("菜谱已保存在本机，但当前无法同步到云端");
             showCollectionRecipes(changed);
             return;
         }
         showCloudProgress("正在同步", "正在更新 " + changed.id + "…");
-        collectionApiClient.save(changed, token, new RecipeCollectionApiClient.Callback<RecipeCollection>() {
+        collectionApiClient.save(changed, new RecipeCollectionApiClient.Callback<RecipeCollection>() {
             @Override
             public void onSuccess(RecipeCollection value) {
                 dismissCloudProgress();
@@ -1096,7 +1045,7 @@ public class MainActivity extends Activity {
                 .setTitle("菜谱集存在新版本")
                 .setMessage("云端已被其他设备更新。本机修改仍然保留，请选择要使用的版本。")
                 .setNegativeButton("使用云端", (dialog, which) -> {
-                    collectionApiClient.get(local.id, collectionCredentials.get(local.id),
+                    collectionApiClient.get(local.id,
                             new RecipeCollectionApiClient.Callback<RecipeCollection>() {
                                 @Override public void onSuccess(RecipeCollection value) {
                                     collectionRepository.saveCollection(value);
@@ -1114,7 +1063,7 @@ public class MainActivity extends Activity {
 
     private void forceSaveCollection(RecipeCollection local, Recipe savedRecipe) {
         showCloudProgress("正在同步", "正在使用本机版本更新云端…");
-        collectionApiClient.forceSave(local, collectionCredentials.get(local.id),
+        collectionApiClient.forceSave(local,
                 new RecipeCollectionApiClient.Callback<RecipeCollection>() {
                     @Override public void onSuccess(RecipeCollection value) {
                         dismissCloudProgress();
@@ -1266,7 +1215,7 @@ public class MainActivity extends Activity {
         ImageButton add = iconButton(R.drawable.ic_action_add, "新增自定义菜谱", false);
         add.setOnClickListener(v -> startNewRecipe());
         RecipeCollection active = activeCollection();
-        boolean canAdd = active == null || collectionCredentials.has(active.id);
+        boolean canAdd = active == null || collectionRepository.canEdit(active);
         add.setEnabled(canAdd);
         if (!canAdd) add.setAlpha(0.45f);
         header.addView(add, new LinearLayout.LayoutParams(dp(48), dp(48)));
@@ -1754,7 +1703,7 @@ public class MainActivity extends Activity {
     private boolean canEditRecipe(Recipe recipe) {
         if (recipe == null || !recipe.custom) return false;
         RecipeCollection collection = activeCollection();
-        return collection == null || collectionCredentials.has(collection.id);
+        return collection == null || collectionRepository.canEdit(collection);
     }
 
     private void showRecipesForIngredient(String ingredient) {

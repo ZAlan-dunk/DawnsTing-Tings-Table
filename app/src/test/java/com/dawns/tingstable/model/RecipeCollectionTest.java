@@ -26,7 +26,7 @@ public class RecipeCollectionTest {
     }
 
     @Test
-    public void acceptsServerAssignedSpecialNumber() {
+    public void acceptsCustomSpecialNumber() {
         RecipeCollection collection = new RecipeCollection(
                 "SPECIAL01", "定制菜谱集", RecipeCollection.TYPE_SPECIAL,
                 1L, 1L, 1L, true, Collections.emptyList()

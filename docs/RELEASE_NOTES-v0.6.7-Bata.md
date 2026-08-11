@@ -1,12 +1,14 @@
 ## Updates
 
-- Replaced full-device cloud restore with recipe-only collection synchronization.
-- Added numbered recipe collections and protected custom collections.
+- Replaced whole-device restore with recipe-only cloud collections.
+- Added sequential `Dew-xxxx` collections and local custom-special unlocking.
 - Added cuisine grouping and local habit-based recipe sorting.
 
 ## Functions
 
-- Creates sequentially numbered recipe collections and imports existing custom recipes once.
-- Keeps settings, favorites, pantry, shopping data, and recipe usage history on the device.
-- Preserves local edits during synchronization conflicts and requires an explicit resolution.
+- Synchronizes the complete collection state directly with the private GitHub data repository.
+- Downloads custom-special data with normal collections but hides it until the packaged key is validated locally.
+- Creates `KKLLTL` as “露露的小厨房” when first unlocked and supports later renaming and recipe editing.
+- Preserves local edits during revision conflicts and requires an explicit cloud/local choice.
+- Keeps settings, favorites, pantry, shopping data, selected ingredients, and usage history on the device.
 - Publishes only the signed release APK.

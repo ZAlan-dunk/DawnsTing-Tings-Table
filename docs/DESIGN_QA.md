@@ -45,7 +45,8 @@
 - [x] System Back source policy covers page hierarchy and Home exit confirmation; physical-device confirmation remains pending.
 - [x] Recipe collection actions and category mode use 48dp native controls with content descriptions and explicit states.
 - [x] Habit history, theme, favorites, pantry, shopping list, and selected ingredients remain outside recipe collection payloads.
-- [x] v0.6.7-Bata local Android verification passed 46 unit tests, Debug/Release Lint, and Release assembly with SDK 36; no debug APK was assembled.
+- [x] Recipe collection refresh caches the complete cloud state while repository visibility, page restore, active collection, and recipe lookup exclude locked custom specials.
+- [x] v0.6.7-Bata local Android verification passed 54 unit tests, Debug/Release Lint with 0 errors, and Release assembly with SDK 36; no debug APK was assembled.
 - [ ] Physical-device font-scale, orientation, and TalkBack checks pass.
 
 ## Known Limits

@@ -20,6 +20,7 @@ public final class RecipeCollectionRepository {
     private static final String KEY_COLLECTIONS = "collections";
     private static final String KEY_LAST_SYNC = "last_sync_at";
     private static final String KEY_DIRTY = "dirty_collection_ids";
+    private static final String KEY_UNLOCKED_SPECIALS = "unlocked_special_ids";
 
     private final SharedPreferences preferences;
 
@@ -27,7 +28,18 @@ public final class RecipeCollectionRepository {
         preferences = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
     }
 
+    /** Returns only collections the current device is allowed to show. */
     public List<RecipeCollection> getCollections() {
+        Set<String> unlocked = unlockedSpecialIds();
+        List<RecipeCollection> result = new ArrayList<>();
+        for (RecipeCollection collection : getStoredCollections()) {
+            if (RecipeCollectionVisibility.isVisible(collection, unlocked)) result.add(collection);
+        }
+        return result;
+    }
+
+    /** Includes hidden special collections cached from the cloud. */
+    public List<RecipeCollection> getStoredCollections() {
         List<RecipeCollection> result = new ArrayList<>();
         try {
             JSONArray array = new JSONArray(preferences.getString(KEY_COLLECTIONS, "[]"));
@@ -46,9 +58,16 @@ public final class RecipeCollectionRepository {
         return null;
     }
 
+    public RecipeCollection findStoredById(String id) {
+        for (RecipeCollection collection : getStoredCollections()) {
+            if (collection.id.equals(id)) return collection;
+        }
+        return null;
+    }
+
     public void mergeCatalog(List<RecipeCollection> remote) {
         Map<String, RecipeCollection> merged = new LinkedHashMap<>();
-        for (RecipeCollection local : getCollections()) merged.put(local.id, local);
+        for (RecipeCollection local : getStoredCollections()) merged.put(local.id, local);
         if (remote != null) {
             for (RecipeCollection collection : remote) {
                 if (collection == null) continue;
@@ -63,9 +82,25 @@ public final class RecipeCollectionRepository {
 
     public void saveCollection(RecipeCollection collection) {
         Map<String, RecipeCollection> values = new LinkedHashMap<>();
-        for (RecipeCollection item : getCollections()) values.put(item.id, item);
+        for (RecipeCollection item : getStoredCollections()) values.put(item.id, item);
         values.put(collection.id, collection);
         persist(new ArrayList<>(values.values()));
+    }
+
+    public void unlockSpecial(String collectionId) {
+        String id = collectionId == null ? "" : collectionId.trim();
+        if (id.isEmpty()) return;
+        Set<String> values = unlockedSpecialIds();
+        values.add(id);
+        preferences.edit().putStringSet(KEY_UNLOCKED_SPECIALS, values).apply();
+    }
+
+    public boolean isSpecialUnlocked(String collectionId) {
+        return unlockedSpecialIds().contains(collectionId);
+    }
+
+    public boolean canEdit(RecipeCollection collection) {
+        return RecipeCollectionVisibility.canEdit(collection, unlockedSpecialIds());
     }
 
     public long lastSyncAt() {
@@ -92,6 +127,11 @@ public final class RecipeCollectionRepository {
                 preferences.getStringSet(KEY_DIRTY, java.util.Collections.emptySet()));
         values.remove(collectionId);
         preferences.edit().putStringSet(KEY_DIRTY, values).apply();
+    }
+
+    private Set<String> unlockedSpecialIds() {
+        return new LinkedHashSet<>(preferences.getStringSet(
+                KEY_UNLOCKED_SPECIALS, java.util.Collections.emptySet()));
     }
 
     private void persist(List<RecipeCollection> collections) {

@@ -16,15 +16,16 @@
 - Motion and performance: Short purposeful motion with an immediate reduced-motion fallback; no continuous decorative animation.
 - Visual system: Default to a restrained low-saturation palette; support a persistent in-app night skin without relying on system mode.
 - Release: Preserve package identity, local-data compatibility, each repository's signing continuity, and all historical GitHub Releases. Do not build, upload, or hand off a debug APK unless explicitly requested.
+- Cloud access: The release build receives the private GitHub token from the repository Actions Secret. Complete recipe-collection state is cached locally; a packaged key controls only whether a custom special is shown and editable on that device.
 
 ## Iterations
 
 ### 2026-08-11 v0.6.7-Bata
 
-- Changes: Replaced whole-device backup/restore UI with recipe-only collection sync; added server-assigned `Dew-xxxx` collections, protected custom collections, encrypted scoped credentials, explicit sync conflict handling, cuisine grouping, and local habit sorting.
-- Decisions and new preferences: Existing built-in specials remain separate. Standard collections are publicly readable; key-gated custom collections are excluded from the public catalog and require a server-issued token. Do not embed a GitHub PAT or custom-collection key in the APK.
-- Verification: On 2026-08-12, 46 local unit tests, Debug/Release Lint, and Release assembly passed with Android SDK 36; no debug APK was assembled. Worker tests passed remotely. Worker deployment, full Android CI, signing, APK metadata, and published-asset verification remain required before publication.
-- Commit, tag, and Release: Source commit completed locally; push, tag, and Release remain pending until the recipe collection service is deployed and verified.
+- Changes: Replaced whole-device restore with recipe-only collections; added sequential `Dew-xxxx` allocation, direct GitHub state synchronization, local `KKLLTL` visibility gating, explicit revision conflict handling, cuisine grouping, and local habit sorting.
+- Decisions and new preferences: Existing built-in specials remain separate. Complete collection data may be downloaded before a key is entered; the App hides custom-special metadata and recipes until the packaged key is validated locally. Cloudflare Worker, scoped tokens, recovery codes, and Android Keystore collection credentials are not used.
+- Verification: On 2026-08-12, 54 unit tests, Debug/Release Lint with 0 errors, and Release assembly passed with SDK 36; no debug APK was assembled. The unsigned local APK reports package `com.dawns.tingstable`, version 14 / `0.6.7-Bata`, display name `懒羊羊当大厨~`, minSdk 26, targetSdk 36, and the expected Internet permission. The private cloud state was initialized and read back with `KKLLTL` and no access key. CI signing and published-asset verification remain pending.
+- Commit, tag, and Release: The initial collection implementation is committed locally; the final direct-GitHub follow-up, push, tag, and Release are pending verification.
 
 ### 2026-08-11 v0.6.6-Bata
 
