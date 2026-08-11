@@ -23,8 +23,8 @@
 
 - Changes: Added one-tap private cloud upload, backup preview and confirmed restore for custom recipes, favorites, pantry, shopping list, selected ingredients, and theme; added separate Ting/Lulu cloud profiles and rollback-on-failure local restoration.
 - Decisions and new preferences: Both repositories display `懒羊羊当大厨~`; Lulu differs only in repository identity, cloud profile, APK filename, and its existing independent signing chain. Cloud credentials remain encrypted repository Secrets and are never committed. Only release APKs are produced and published.
-- Verification: Backup payload unit tests cover round-trip data, profile mismatch, unsupported schema, and deduplication. Full Android CI, signing, APK metadata, and remote backup smoke verification are required before publication.
-- Commit, tag, and Release: Pending.
+- Verification: GitHub Actions run `31455385953` passed the private-repository write probe, backup payload tests (round-trip data, profile mismatch, unsupported schema, and deduplication), catalog validation, Debug/Release Lint, release assembly, APK signing, and package/name/version metadata checks. The release APK uses package `com.dawns.tingstable`, version 13 / `0.6.6-Bata`, certificate SHA-256 `ae06e4523f23cd177fe22081c5ae9150b5e9533478de53584566ac22013f6752`, and APK SHA-256 `fdda4776600b974ef019324628c19cba189f9845f7a27fa8f890268e1a45db1f`.
+- Commit, tag, and Release: Implementation commit `6ff163f` is pushed to `main`; the final verified record commit will be tagged `v0.6.6-Bata` and published as a GitHub Pre-release with only `LazySheepChef-v0.6.6-Bata-release.apk`.
 
 ### 2026-08-09 v0.6.5-Bata
 
