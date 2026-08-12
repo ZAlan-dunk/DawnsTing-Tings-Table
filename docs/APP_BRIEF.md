@@ -50,8 +50,9 @@
 
 ## Delivery
 
-- Version/tag: `v0.6.8-Bata`
-- Artifact: `LazySheepChef-PWA-v0.6.8-Bata.zip`
-- Deployment: GitHub Pages through `.github/workflows/pages.yml`.
+- Web version: `v0.6.8-Bata`
+- iOS entry URL: `https://zalan-dunk.github.io/DawnsTing-Tings-Table/`; no file download is required.
+- Deployment: GitHub Pages through `.github/workflows/pages.yml`; no PWA ZIP, Git tag, or GitHub Release is created.
+- Release policy: GitHub Releases are reserved for signed Android APKs.
 - Verification: Node data-rule tests, manifest and service-worker checks, catalog counts, JavaScript parsing, HTTP deployment checks, and GitHub Pages workflow result.
 - Known device boundary: Physical iPhone installation, VoiceOver, orientation, keyboard, and storage eviction are not claimed without user/device verification.

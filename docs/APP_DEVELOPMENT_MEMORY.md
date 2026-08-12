@@ -16,7 +16,7 @@
 - Theme and typography: Warm paper, jade, cinnabar, old gold, readable Chinese system typography, and a text-first Android home Hero without character artwork.
 - Motion and performance: Short purposeful motion with an immediate reduced-motion fallback; no continuous decorative animation.
 - Visual system: Default to a restrained low-saturation palette; support a persistent in-app night skin without relying on system mode.
-- Release: Preserve package identity, local-data compatibility, each repository's signing continuity, and all historical GitHub Releases. Do not build, upload, or hand off a debug APK unless explicitly requested.
+- Release: Preserve package identity, local-data compatibility, each repository's signing continuity, and all historical Android GitHub Releases. Releases contain signed Android APKs only; iOS/PWA is delivered only by the README Pages URL, without a ZIP or PWA Release. Do not build, upload, or hand off a debug APK unless explicitly requested.
 - Cloud access: The release build receives the private GitHub token from the repository Actions Secret. Complete recipe-collection state is cached locally; a packaged key controls only whether a custom special is shown and editable on that device.
 - PWA storage: Keep the optional GitHub token device-local and out of public Pages assets. Provide JSON export/import because iOS can evict browser storage.
 
@@ -27,7 +27,7 @@
 - Changes: Added an iPhone/iPad installable PWA with standalone manifest, Apple touch icons, offline app shell, safe-area layout, light/night skins, compact recipe tools, local recipe/pantry/shopping flows, built-in specials, personal collections, optional direct GitHub sync, and JSON recovery.
 - Decisions and new preferences: Keep Android v0.6.7 unchanged. Treat the iOS build as a PWA rather than a native app. Never inject the private repository token into public Pages JavaScript; users may store it locally on a device when cloud collections are needed.
 - Verification: Eleven Node tests passed for sequential collection IDs, UUID preservation, special visibility, habit sorting, import/export, grouping, manifest, service-worker assets, JavaScript parsing, 15 built-ins, and 150 Yunfeng entries. GitHub Pages run `31564357076` passed after one-time Pages enablement; the public HTTPS page, manifest, service worker, profile, 15 built-ins, and 150 Yunfeng entries returned the expected values. Physical iPhone install and VoiceOver remain user/device checks.
-- Commit, tag, and Release: Implementation commit `5be32ae` is pushed. Final `v0.6.8-Bata` tag and PWA source archive publication follow this verification record.
+- Commit and delivery: Implementation commit `5be32ae` and Pages verification commit `d812657` are pushed. The PWA is delivered only through GitHub Pages; no `v0.6.8-Bata` tag, PWA archive, or GitHub Release is retained.
 
 ### 2026-08-11 v0.6.7-Bata
 

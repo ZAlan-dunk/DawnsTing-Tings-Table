@@ -1,4 +1,4 @@
-# v0.6.8-Bata
+# v0.6.8-Bata Web Version Notes
 
 ## Updates
 
@@ -16,6 +16,7 @@
 
 ## Limits
 
-- This release is a PWA source archive, not an IPA or Android APK.
+- This web version is served only from the repository's GitHub Pages URL. It has no ZIP, IPA, Git tag, or GitHub Release.
+- GitHub Releases are reserved for signed Android APK downloads.
 - iOS may evict browser storage. Export important local data or use the optional recipe-collection sync.
 - Physical iPhone installation, VoiceOver, keyboard, orientation, and storage-eviction checks remain device verification items.

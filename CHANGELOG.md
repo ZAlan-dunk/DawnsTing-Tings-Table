@@ -14,7 +14,7 @@
 - PWA 本地数据按仓库配置隔离，并提供 JSON 导出/导入，降低 iOS 清理浏览器存储后的丢失风险。
 - 私有 GitHub 菜谱集同步改为当前设备填写令牌；令牌不进入公开 Pages 源码或静态产物。
 - 新增 Web App Manifest、Apple touch icons、Service Worker 离线应用外壳和 GitHub Pages 自动部署。
-- 发布 `v0.6.8-Bata` PWA 源码归档；Android `v0.6.7-Bata` APK 与历史签名保持不变。
+- PWA 仅通过 README 中的 GitHub Pages 地址提供，不创建独立 Release、Tag 或 ZIP；Android `v0.6.7-Bata` APK 与历史签名保持不变。
 
 ## v0.6.6-Bata — 2026-08-11
 

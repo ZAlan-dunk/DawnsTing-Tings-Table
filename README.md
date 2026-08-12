@@ -6,6 +6,7 @@
 
 - 当前 PWA 版本：**v0.6.8-Bata**
 - 打开地址：[懒羊羊当大厨~ PWA](https://zalan-dunk.github.io/DawnsTing-Tings-Table/)
+- iOS 版直接通过上方网址使用，无需下载 ZIP、HTML 文件或进入 GitHub Releases。
 - 安装方法：用 Safari 打开上方地址，点击“分享” -> “添加到主屏幕” -> “添加”。
 - 安装后以独立窗口运行，支持浅色/夜间皮肤、离线应用外壳、安全区域和浏览历史返回。
 - 菜谱、收藏、菜篮、采购清单、使用习惯和皮肤默认保存在当前浏览器。iOS 可能清理网页存储，首页提供 JSON 导出与导入。
@@ -17,7 +18,7 @@
 - 最新 Android 发布版本：**v0.6.7-Bata 测试版**
 - 当前 Android 源码版本：**v0.6.7-Bata**
 - 系统要求：Android 8.0（API 26）及以上
-- 下载地址：[前往 GitHub Releases](https://github.com/ZAlan-dunk/DawnsTing-Tings-Table/releases)。发布页只提供正式签名的 release APK。
+- 下载地址：[前往 GitHub Releases](https://github.com/ZAlan-dunk/DawnsTing-Tings-Table/releases)。发布页仅用于安卓正式签名 APK，不提供 PWA 压缩包或 iOS 文件。
 
 v0.5 保持原包名与数据结构，但公开 APK 改用新的个人测试版专用签名。由于 v0.4 原发布私钥不可用，v0.1～v0.4 用户必须先卸载旧版再安装，卸载前请自行备份重要内容；从 v0.6.0 起的 release 包沿用同一测试签名并递增版本号，可继续覆盖升级。旧自定义菜谱缺少菜系时会自动归入“家常融合”。
 

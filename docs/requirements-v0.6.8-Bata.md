@@ -30,6 +30,12 @@
 - JSON 导出/导入用于手动迁移与防止 iOS 清理网页存储后的数据丢失。
 - 私有 GitHub 云同步为可选功能；用户令牌只保存在当前浏览器，不提交到仓库，不进入 Pages 构建物。
 
+## 分发
+
+- iOS 用户直接打开 README 中的 GitHub Pages 地址，并通过 Safari 添加到主屏幕；无需下载 ZIP、HTML 文件或 IPA。
+- `v0.6.8-Bata` 仅作为 PWA 网页版本标识，不创建对应 Git Tag 或 GitHub Release。
+- GitHub Releases 只用于提供安卓正式签名 APK，不附加 PWA 压缩包。
+
 ## 验收
 
 - Manifest 和 Service Worker 引用的本地资源均存在并可从 Pages HTTPS 地址获取。
