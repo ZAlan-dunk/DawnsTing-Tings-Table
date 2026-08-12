@@ -26,6 +26,10 @@
 | Yunfeng Special | 600dp+ | Light/Dark | 100% | 150 recipes | Cards use two balanced columns | Source passed | GridLayoutManager switches to two columns at 600dp |
 | Yunfeng Special | Compact target | Light/Dark | 200% | Long title/offline cover | Title remains reachable and missing cover keeps a local placeholder | Source passed | Four-line title allowance, whole-card action, and non-resizing placeholder |
 | System Back | Compact target | Light/Dark | 100% | Detail, form, Home | Previous surface is shown; Home requires two presses before exit confirmation | Source passed | Unified legacy/new back dispatch and two-step Home policy |
+| iPhone PWA Home | 320px target | Light/Dark | 200% | Long Chinese labels | Hero remains text-first; action grid and tools reflow without overlap | Source passed | CSS single-column fallback, wrap-content headings, safe-area insets |
+| iPhone PWA Recipes | 320px target | Light/Dark | 200% | Search/filter/category tools | Results remain first; four 48px tools wrap to a second row | Source passed | Icon toolbar, modal sheets, `max-width: 520px` toolbar rule |
+| iPad PWA | 720px+ | Light/Dark | 100% | Recipe and special lists | Repeated content uses two columns and bottom navigation stays bounded | Source passed | Responsive grid and 680px navigation cap |
+| Installed PWA | iOS standalone | Light/Dark | 100% | Safe areas and Back | Top/bottom content avoids system areas; detail Back follows browser history | Source passed | `viewport-fit=cover`, `env(safe-area-inset-*)`, History API |
 
 ## Checks
 
@@ -48,9 +52,16 @@
 - [x] Recipe collection refresh caches the complete cloud state while repository visibility, page restore, active collection, and recipe lookup exclude locked custom specials.
 - [x] v0.6.7-Bata local Android verification passed 54 unit tests, Debug/Release Lint with 0 errors, and Release assembly with SDK 36; no debug APK was assembled.
 - [x] CI run `31515499816` passed cloud access, signing, APK metadata, and artifact upload; the single published APK was re-downloaded with a matching SHA-256.
+- [x] PWA Manifest declares standalone mode, start URL, theme colors, and 180/192/512 PNG icons.
+- [x] PWA Service Worker precaches the HTML, CSS, JavaScript, manifest, icons, 15 built-ins, and 150-entry Yunfeng catalog.
+- [x] PWA source uses semantic buttons/forms, 48px icon controls, safe-area insets, responsive reflow, visible focus, and reduced-motion fallback.
+- [x] PWA private-cloud token is not present in repository source or static deployment assets; optional token entry stays in the current browser.
+- [x] Eleven Node tests cover collection numbering, UUID preservation, special visibility, sorting, import/export, grouping, install files, catalogs, and JavaScript parsing.
 - [ ] Physical-device font-scale, orientation, and TalkBack checks pass.
+- [ ] Physical iPhone Add to Home Screen, standalone restart, offline restart, keyboard, orientation, VoiceOver, and storage-eviction checks pass.
 
 ## Known Limits
 
 - GUI automation, screenshots, screen readers, and physical-device control were not used.
 - Device-only visual and TalkBack checks remain unclaimed until performed by an authorized person.
+- GUI automation and screenshots were not used. PWA layout evidence is source-level and automated static verification until a physical iPhone check is completed.

@@ -10,6 +10,7 @@ local.properties
 **/build/
 *.apk
 *.aab
+release/
 captures/
 .externalNativeBuild/
 .cxx/

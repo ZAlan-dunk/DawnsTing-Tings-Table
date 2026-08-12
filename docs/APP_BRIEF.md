@@ -3,58 +3,55 @@
 ## Task
 
 - Date: 2026-08-12
-- Requested outcome: Add shared cloud recipe collections, sequential standard numbering, a locally unlocked custom special, cuisine grouping, and local habit sorting.
-- Primary users: A small group of personal Android users who do not need an app account.
-- Non-goals: Social features, analytics, advertising, background synchronization, built-in-special migration, package-ID changes, or uploading personal settings.
+- Requested outcome: Add an iPhone/iPad version that opens in Safari and installs through Add to Home Screen.
+- Primary users: A small group using the recipe app on personal iOS devices without an App Store account or native signing flow.
+- Non-goals: Native IPA/SwiftUI packaging, App Store distribution, background synchronization, analytics, ads, account registration, or Android package changes.
 
 ## Project Boundary
 
-- App repository: `D:\\Agent\\Githubstorage\\DawnsTing-Tings-Table`
-- Paired repository: `D:\\Agent\\Githubstorage\\Dawnsdew-Lulu-s-Table`
-- Private data repository: `ZAlan-dunk/Dawnsdew-Recipe-Cloud`
-- Cloud file: `collections/state.json`
-- Runtime route: The App calls the GitHub Contents API directly. It does not require a Cloudflare Worker.
+- Repository: `D:\Agent\Githubstorage\DawnsTing-Tings-Table`
+- Paired repository: `D:\Agent\Githubstorage\Dawnsdew-Lulu-s-Table`
+- Delivery surface: GitHub Pages PWA from `docs/pwa`.
+- Public URL: `https://zalan-dunk.github.io/DawnsTing-Tings-Table/`
+- Android source, package `com.dawns.tingstable`, signing, APK naming, and historical releases remain unchanged.
 
-## Stable Identity
+## Primary Flow
 
-- Package ID and namespace: `com.dawns.tingstable`
-- Artifact base: `LazySheepChef`
-- Installed and in-app display name: `懒羊羊当大厨~`
-- Signing: Continue this repository's existing release certificate.
-- Copy rule: Ting and Lulu keep the same runtime behavior; only repository identity, APK filename, cloud migration profile, and signing chain differ.
+- Open the Pages URL in iPhone Safari.
+- Use Share -> Add to Home Screen.
+- Open the standalone PWA, browse a recipe, and use browser history to return.
+- Add personal recipes, pantry items, and shopping entries that persist locally and remain usable after an offline restart.
 
 ## Experience
 
-- Home exposes Personal Recipe Collections as a first-level action.
-- The collection hub first renders the local cache, then explicitly refreshes the complete cloud state.
-- Standard collections are numbered `Dew-0001`, `Dew-0002`, and so on using optimistic-lock retries.
-- Entering the packaged special key unlocks `KKLLTL` locally and reveals `露露的小厨房`; its name and recipes remain editable.
-- Without the key, custom-special data may be present in the private local cache but is excluded from collection lists, restored pages, and recipe lookup.
-- Recipe browsing retains compact search and filter icons, cuisine grouping, habit sorting, and hierarchical Back behavior.
+- Text-first compact home Hero with no character image.
+- Restrained pale default skin and a neutral dark skin.
+- Bottom navigation for Home, Recipes, Pantry, Specials, and Shopping.
+- Search, filter, category mode, and add actions use 48px icon controls; search and filter content opens in a bottom sheet.
+- iPhone safe-area insets, iPad two-column layouts, readable Chinese system typography, visible focus, and reduced-motion fallback.
 
 ## Data Boundary
 
-- Synced: Collection ID, name, type, revision, timestamps, and custom recipes.
-- Local only: Theme, favorites, pantry, shopping list, selected ingredients, view mode, usage counts, and last-opened times.
-- Legacy: Historical v0.6.6 backup files remain unchanged. The first standard collection for each profile may import `customRecipes` once.
-- Build configuration: The GitHub token is supplied by the existing repository Actions Secret and injected into the release build. The custom-special ID, default name, and key are packaged in the App for local validation.
-- Offline: Cached visible collections remain readable. Failed refreshes do not discard local data.
+- Local: Custom recipes, favorites, pantry, shopping list, usage counts, last-opened time, theme, cloud cache, and optional GitHub token.
+- Cloud: Only numbered recipe collections and their custom recipes when the user explicitly configures and triggers sync.
+- Recovery: JSON export/import is available because iOS may evict PWA browser storage.
+- Security boundary: A private GitHub token is never injected into public Pages JavaScript. Optional cloud sync stores the user-entered token only in that browser profile.
 
 ## Acceptance Criteria
 
-- Concurrent standard creation retries GitHub SHA conflicts and never reuses an occupied or earlier `Dew-xxxx` number.
-- Same-name recipes with different UUIDs remain distinct.
-- A refresh without a special key downloads and caches the complete state but does not display custom-special metadata or recipes.
-- A correct local key reveals `KKLLTL`; an incorrect key does not reveal it.
-- Saved page state and direct recipe lookup cannot bypass the special visibility rule.
-- A revision conflict preserves local edits until the user chooses the cloud or local version.
-- Theme, favorites, pantry, shopping, selected ingredients, and usage history are absent from collection payloads.
-- v0.6.7-Bata cover-installs v0.6.6-Bata when the matching repository certificate is used.
+- Given Safari on iOS, when the Pages URL is added to the Home Screen, then the app opens in standalone mode with the declared name and icon.
+- Given an offline restart after one successful load, when the PWA opens, then the local application shell and bundled recipe catalogs remain available.
+- Given a narrow iPhone viewport or 200% text scale, when recipe tools render, then controls reflow without overlap and retain at least 48px targets.
+- Given search or filter activation, when the sheet opens, then the recipe list is not permanently displaced by a large search bar.
+- Given a recipe detail or form, when Back is used, then the previous PWA surface is restored through browser history.
+- Given no special key, when cloud state contains `KKLLTL`, then its metadata and recipes stay hidden; `TL123` unlocks it locally.
+- Given two same-name recipes with different UUIDs, when saved or imported, then both remain present.
+- Given browser storage loss, when a valid exported JSON file is imported, then the local PWA data is restored without changing the locally stored cloud token.
 
 ## Delivery
 
-- Version/tag: `v0.6.7-Bata`, `versionCode 14`, `versionName 0.6.7-Bata`
-- Artifact: `LazySheepChef-v0.6.7-Bata-release.apk`
-- Build output: Release APK only. No debug APK is assembled, uploaded, or handed off.
-- Verification: Unit tests, Debug/Release Lint, Release assembly, GitHub write probe, release signing, APK metadata, asset inventory, and published-download hash comparison.
-- Development memory: `docs/APP_DEVELOPMENT_MEMORY.md`
+- Version/tag: `v0.6.8-Bata`
+- Artifact: `LazySheepChef-PWA-v0.6.8-Bata.zip`
+- Deployment: GitHub Pages through `.github/workflows/pages.yml`.
+- Verification: Node data-rule tests, manifest and service-worker checks, catalog counts, JavaScript parsing, HTTP deployment checks, and GitHub Pages workflow result.
+- Known device boundary: Physical iPhone installation, VoiceOver, orientation, keyboard, and storage eviction are not claimed without user/device verification.

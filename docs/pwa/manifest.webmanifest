@@ -1,0 +1,35 @@
+{
+  "id": "/DawnsTing-Tings-Table/",
+  "name": "懒羊羊当大厨~",
+  "short_name": "懒羊羊当大厨",
+  "description": "本地优先的家庭菜谱、菜篮、特典和采购清单工具。",
+  "lang": "zh-CN",
+  "dir": "ltr",
+  "start_url": "./?source=installed",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#f4f1ea",
+  "theme_color": "#f4f1ea",
+  "categories": ["food", "lifestyle", "utilities"],
+  "icons": [
+    {
+      "src": "./icons/icon-180.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
+      "src": "./icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

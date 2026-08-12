@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#f4f1ea" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#181a19" media="(prefers-color-scheme: dark)">
+  <meta name="description" content="懒羊羊当大厨~，可添加到 iPhone 主屏幕的离线家庭菜谱工具。">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="懒羊羊当大厨~">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="apple-touch-icon" href="./icons/icon-180.png">
+  <link rel="icon" href="./icons/icon-192.png">
+  <link rel="stylesheet" href="./styles.css">
+  <script>try{document.documentElement.dataset.theme=localStorage.getItem("lazy-sheep-chef:pwa:tings:theme")||"light"}catch(_){}</script>
+  <title>懒羊羊当大厨~</title>
+</head>
+<body>
+  <a class="skip-link" href="#app-main">跳到主要内容</a>
+  <div id="app" class="app-shell">
+    <header class="topbar">
+      <div class="topbar-inner">
+        <button id="back-button" class="icon-button back-button" type="button" aria-label="返回" hidden></button>
+        <div class="brand-block">
+          <strong id="page-title" class="page-title">懒羊羊当大厨~</strong>
+          <span id="page-kicker" class="page-kicker">漂亮嘞女明星～</span>
+        </div>
+        <div class="topbar-actions">
+          <button id="install-button" class="icon-button" type="button" aria-label="安装到桌面" title="安装到桌面" hidden></button>
+          <button id="theme-button" class="icon-button" type="button" aria-label="切换夜间皮肤" title="切换皮肤"></button>
+        </div>
+      </div>
+    </header>
+
+    <main id="app-main" tabindex="-1" aria-live="polite"></main>
+
+    <nav id="bottom-nav" class="bottom-nav" aria-label="主要导航"></nav>
+  </div>
+
+  <div id="modal-root"></div>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <input id="import-file" type="file" accept="application/json,.json" hidden>
+
+  <script src="./core.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
